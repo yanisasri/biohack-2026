@@ -16,6 +16,9 @@ function init() {
   buildSpeciesStack();
   document.getElementById('access-key')
     .addEventListener('keydown', e => { if (e.key === 'Enter') tryAccess(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDistPopup();
+  });
 }
 
 // ── Species stack (left column) ───────────────────────────────────
@@ -231,8 +234,8 @@ function renderAnalysis(c) {
   // Temperature range chart
   drawTempChart(selectedExtinct, c);
 
-  // Eco factor bars
-  renderEcoCards(ecoResult);
+  // Eco factor bars — removed, scores now shown on radar chart
+  // renderEcoCards(ecoResult);
 
   // Summary table
   renderSummaryTable(selectedExtinct, c, ecoResult);
@@ -240,6 +243,12 @@ function renderAnalysis(c) {
   // Phylo tree — async, fetches from Open Tree of Life using scientific names
   const adjustedSciName = selectedExtinct.sci.replace(' ssp. ', ' '); // For API compatibility
   drawPhyloTree(adjustedSciName, c.sci);
+
+  // Trophic chart
+  setTimeout(() => drawTrophicChart(selectedExtinct.key), 150);
+
+  // Distribution chart
+  setTimeout(() => drawDistributionChart(selectedExtinct.key, 'historic'), 150);
 
   setTimeout(() => renderVerdict(c), 500);
   setTimeout(() => {
@@ -253,11 +262,10 @@ function drawRadarChart(factors) {
   const svg    = document.getElementById('radar-svg');
   svg.innerHTML = '';
   const NS     = 'http://www.w3.org/2000/svg';
-  const cx     = 130, cy = 105, R = 80;
+  const cx     = 170, cy = 130, R = 90;
   const keys   = Object.keys(factors);
   const n      = keys.length;
   const angleStep = (2 * Math.PI) / n;
-  // Start at top (-π/2)
   const angle  = i => -Math.PI / 2 + i * angleStep;
   const pt     = (i, r) => [
     cx + r * Math.cos(angle(i)),
@@ -266,15 +274,14 @@ function drawRadarChart(factors) {
 
   // Grid rings
   [20, 40, 60, 80, 100].forEach(pct => {
-    const r     = R * pct / 100;
-    const ring  = document.createElementNS(NS, 'polygon');
-    const pts   = keys.map((_, i) => pt(i, r).join(',')).join(' ');
+    const r    = R * pct / 100;
+    const ring = document.createElementNS(NS, 'polygon');
+    const pts  = keys.map((_, i) => pt(i, r).join(',')).join(' ');
     ring.setAttribute('points', pts);
     ring.setAttribute('fill', 'none');
     ring.setAttribute('stroke', '#e2e8e2');
     ring.setAttribute('stroke-width', '1');
     svg.appendChild(ring);
-    // Label 100 ring
     if (pct === 100 || pct === 50) {
       const lbl = document.createElementNS(NS, 'text');
       lbl.setAttribute('x', cx + 4);
@@ -308,46 +315,55 @@ function drawRadarChart(factors) {
   poly.setAttribute('stroke-width', '2');
   svg.appendChild(poly);
 
-  // Data dots
+  // Data dots + score labels
   scores.forEach((s, i) => {
-    const [x, y] = pt(i, R * s / 100);
-    const dot    = document.createElementNS(NS, 'circle');
-    dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('r', '4');
-    dot.setAttribute('fill', s >= 65 ? '#1a6b35' : s >= 40 ? '#c47c1a' : '#c0392b');
+    const [dx, dy] = pt(i, R * s / 100);
+    const dotColor = s >= 65 ? '#1a6b35' : s >= 40 ? '#c47c1a' : '#c0392b';
+
+    const dot = document.createElementNS(NS, 'circle');
+    dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.setAttribute('r', '5');
+    dot.setAttribute('fill', dotColor);
     dot.setAttribute('stroke', 'white'); dot.setAttribute('stroke-width', '1.5');
     svg.appendChild(dot);
+
+    // Score pill: nudge slightly outward from centre so it doesn't sit on the dot
+    const nudge  = 14;
+    const ang    = angle(i);
+    const px     = dx + nudge * Math.cos(ang);
+    const py     = dy + nudge * Math.sin(ang);
+    const anchor = Math.abs(Math.cos(ang)) < 0.2 ? 'middle' : Math.cos(ang) > 0 ? 'start' : 'end';
+
+    const pill = document.createElementNS(NS, 'text');
+    pill.setAttribute('x', px);
+    pill.setAttribute('y', py + 4);
+    pill.setAttribute('text-anchor', anchor);
+    pill.setAttribute('font-size', '10');
+    pill.setAttribute('font-weight', '800');
+    pill.setAttribute('font-family', "'Nunito',sans-serif");
+    pill.setAttribute('fill', dotColor);
+    pill.textContent = s;
+    svg.appendChild(pill);
   });
 
-  // Labels
+  // Axis labels (outermost ring + extra margin)
   keys.forEach((k, i) => {
-    const labelR = R + 22;
+    const labelR = R + 28;
     const [x, y] = pt(i, labelR);
-    const lbl    = document.createElementNS(NS, 'text');
-    lbl.setAttribute('x', x);
-    lbl.setAttribute('y', y + 3);
-    lbl.setAttribute('text-anchor', Math.abs(x - cx) < 5 ? 'middle' : x < cx ? 'end' : 'start');
-    lbl.setAttribute('font-size', '9');
-    lbl.setAttribute('font-family', "'Nunito Sans',sans-serif");
-    lbl.setAttribute('fill', '#5a7a62');
-    lbl.setAttribute('font-weight', '600');
-    // Wrap long labels
+    const anchor = Math.abs(x - cx) < 8 ? 'middle' : x < cx ? 'end' : 'start';
+
     const words = k.split(' ');
-    if (words.length > 1 && Math.abs(x - cx) > 20) {
-      lbl.textContent = words[0];
-      const lbl2 = document.createElementNS(NS, 'text');
-      lbl2.setAttribute('x', x);
-      lbl2.setAttribute('y', y + 13);
-      lbl2.setAttribute('text-anchor', lbl.getAttribute('text-anchor'));
-      lbl2.setAttribute('font-size', '9');
-      lbl2.setAttribute('font-family', "'Nunito Sans',sans-serif");
-      lbl2.setAttribute('fill', '#5a7a62');
-      lbl2.setAttribute('font-weight', '600');
-      lbl2.textContent = words.slice(1).join(' ');
-      svg.appendChild(lbl2);
-    } else {
-      lbl.textContent = k;
-    }
-    svg.appendChild(lbl);
+    words.forEach((word, wi) => {
+      const lbl = document.createElementNS(NS, 'text');
+      lbl.setAttribute('x', x);
+      lbl.setAttribute('y', y + 3 + wi * 11);
+      lbl.setAttribute('text-anchor', anchor);
+      lbl.setAttribute('font-size', '9');
+      lbl.setAttribute('font-family', "'Nunito Sans',sans-serif");
+      lbl.setAttribute('fill', '#5a7a62');
+      lbl.setAttribute('font-weight', '600');
+      lbl.textContent = word;
+      svg.appendChild(lbl);
+    });
   });
 }
 
@@ -469,6 +485,33 @@ function drawTempChart(extinct, candidate) {
     olbl.setAttribute('font-weight', '700');
     olbl.textContent = 'Overlap';
     svg.appendChild(olbl);
+  }
+
+  // Overlap interpretation summary
+  const summaryEl = document.getElementById('temp-overlap-summary');
+  if (summaryEl) {
+    const overlapSize   = Math.max(0, ovMax - ovMin);
+    const extinctRange  = extinct.tempMax  - extinct.tempMin  || 1;
+    const pct           = Math.round((overlapSize / extinctRange) * 100);
+    const candidateName = candidate.name;
+    const extName       = extinct.name;
+
+    let verdict, cls;
+    if (pct >= 75) {
+      verdict = `Strong overlap (${pct}% of ${extName}'s historic range). ${candidateName} already tolerates the full temperature window of the target habitat — climate adaptation edits are unlikely to be needed.`;
+      cls = 'ok';
+    } else if (pct >= 40) {
+      verdict = `Partial overlap (${pct}% of ${extName}'s historic range). ${candidateName} shares part of the required thermal window, but would need to endure temperatures outside its current tolerance — targeted edits to thermoregulation genes may help.`;
+      cls = 'warn';
+    } else if (pct > 0) {
+      verdict = `Minimal overlap (${pct}% of ${extName}'s historic range). ${candidateName} lives in a very different thermal environment — significant cold/heat adaptation would be required before wild release into the target habitat.`;
+      cls = 'bad';
+    } else {
+      verdict = `No temperature overlap. ${candidateName}'s thermal range does not intersect with ${extName}'s historic habitat at all. Climate mismatch is a major barrier to de-extinction viability.`;
+      cls = 'bad';
+    }
+    summaryEl.innerHTML = `<span class="temp-overlap-icon ${cls}"></span>${verdict}`;
+    summaryEl.className = `temp-overlap-summary ${cls}`;
   }
 }
 
@@ -612,12 +655,19 @@ function renderVerdict(c) {
     'no-attempt': `While genetic de-extinction may be technically possible, ecological conditions — including invasive predators, habitat loss, or human conflict — make reintroduction inadvisable at this time.`,
   };
 
+  const imgSrc = (typeof speciesImages !== 'undefined' && speciesImages[sp.key]) || '';
+
   const vc = document.getElementById('verdict-card');
-  vc.style.background = `linear-gradient(135deg, ${v.color} 0%, ${adjustColor(v.color, -20)} 100%)`;
+  vc.style.background = '';
   vc.style.color = '#fff';
   vc.innerHTML = `
+    ${imgSrc ? `
+    <div class="verdict-img-wrap">
+      <img src="${imgSrc}" class="verdict-img" alt="${sp.name}" />
+      <div class="verdict-img-overlay" style="background: linear-gradient(to right, ${v.color}ee 38%, ${v.color}99 60%, ${adjustColor(v.color,-20)}44 100%);"></div>
+    </div>` : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,${v.color},${adjustColor(v.color,-20)});border-radius:var(--radius);"></div>`}
     <div class="verdict-deco"></div>
-    <div class="verdict-inner">
+    <div class="verdict-inner" style="position:relative;z-index:2;">
       <div>
         <div class="verdict-label">De-Extinction Verdict</div>
         <div class="verdict-title">${v.text}</div>
@@ -637,7 +687,7 @@ function renderVerdict(c) {
           </table>
         </div>
       </div>
-      <div class="verdict-emoji-big">${sp.icon}</div>
+      <div style="flex-shrink:0;"></div>
     </div>`;
   vc.classList.add('open');
 }
@@ -951,6 +1001,241 @@ function showPhyloFallback(svg, NS, extinctSci, candidateSci, reason) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────
+// ── Trophic population dynamics chart ────────────────────────────
+let trophicChartInstance = null;
+function drawTrophicChart(extKey) {
+  const d = trophicData[extKey];
+  if (!d) return;
+
+  if (trophicChartInstance) { trophicChartInstance.destroy(); trophicChartInstance = null; }
+
+  // Build legend
+  const legend = document.getElementById('trophic-legend');
+  legend.innerHTML = [
+    ['#639922', d.lowerLabel],
+    ['#c0392b', d.targetLabel],
+    ['#7777cc', d.upperLabel],
+  ].map(([col, lbl]) =>
+    `<span class="trophic-legend-item">
+       <span class="trophic-legend-dot" style="background:${col}"></span>${lbl}
+     </span>`
+  ).join('');
+
+  // Mark extinction event
+  const extIdx = d.extIndex;
+
+  // Vertical annotation via a dataset of a single point with huge radius? 
+  // We'll use a custom annotation-free approach: shade via a dataset.
+  trophicChartInstance = new Chart(document.getElementById('trophic-chart'), {
+    type: 'line',
+    data: {
+      labels: d.timeLabels,
+      datasets: [
+        {
+          label: d.lowerLabel,
+          data: d.lower,
+          borderColor: '#639922',
+          backgroundColor: '#63992218',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+        },
+        {
+          label: d.targetLabel,
+          data: d.target,
+          borderColor: '#c0392b',
+          backgroundColor: '#c0392b18',
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+        },
+        {
+          label: d.upperLabel,
+          data: d.upper,
+          borderColor: '#7777cc',
+          backgroundColor: '#7777cc12',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y,
+          }
+        },
+      },
+      scales: {
+        x: {
+          ticks: { maxRotation: 45, font: { size: 9, family: "'Nunito Sans',sans-serif" }, maxTicksLimit: 7, color: '#7a9a82' },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+        },
+        y: {
+          title: { display: true, text: 'Relative index', font: { size: 10, family: "'Nunito Sans',sans-serif" }, color: '#7a9a82' },
+          min: 0, max: 105,
+          ticks: { font: { size: 9, family: "'Nunito Sans',sans-serif" }, color: '#7a9a82', stepSize: 25 },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+        }
+      },
+    },
+    plugins: [{
+      id: 'extinctionLine',
+      afterDraw(chart) {
+        const { ctx, chartArea, scales } = chart;
+        if (!chartArea) return;
+        const xScale = scales.x;
+        const xPos = xScale.getPixelForValue(extIdx);
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(xPos, chartArea.top);
+        ctx.lineTo(xPos, chartArea.bottom);
+        ctx.strokeStyle = 'rgba(192,57,43,0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = "bold 9px 'Nunito Sans',sans-serif";
+        ctx.fillStyle = 'rgba(192,57,43,0.7)';
+        ctx.textAlign = 'center';
+        ctx.fillText('† Extinct', xPos, chartArea.top - 4);
+        ctx.restore();
+      }
+    }]
+  });
+
+  const caption = document.getElementById('trophic-caption');
+  caption.textContent = 'Relative population indices (modelled). Collapse of lower trophic levels precedes megafauna extinction by 200–400 years.';
+}
+
+// ── Species distribution chart ────────────────────────────────────
+let distChartInstance = null;
+let currentDistView   = 'historic';
+
+function setDistView(view, btn) {
+  currentDistView = view;
+  document.querySelectorAll('.dist-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (selectedExtinct) drawDistributionChart(selectedExtinct.key, view);
+}
+
+function drawDistributionChart(extKey, view) {
+  const d = distributionData[extKey];
+  if (!d) return;
+
+  if (distChartInstance) { distChartInstance.destroy(); distChartInstance = null; }
+
+  const historicColor = 'rgba(26,107,53,0.65)';
+  const modernColor   = 'rgba(192,57,43,0.65)';
+  const overlapColor  = 'rgba(196,124,26,0.75)';
+
+  let datasets = [];
+  let captionText = '';
+
+  if (view === 'historic') {
+    datasets = [{
+      label: 'Historic occurrences',
+      data: d.historic.map(([x, y, v]) => ({ x, y, r: Math.max(3, v / 14) })),
+      backgroundColor: historicColor,
+      borderColor: 'rgba(26,107,53,0.9)',
+      borderWidth: 0.5,
+    }];
+    captionText = 'Historic occurrence records — broad pre-extinction distribution.';
+  } else if (view === 'modern') {
+    datasets = [{
+      label: 'Modern suitable habitat',
+      data: d.modern.map(([x, y, v]) => ({ x, y, r: Math.max(3, v / 14) })),
+      backgroundColor: modernColor,
+      borderColor: 'rgba(192,57,43,0.9)',
+      borderWidth: 0.5,
+    }];
+    captionText = 'Modern habitat suitability — range contracted and fragmented since extinction.';
+  } else {
+    // Overlap: show both, colour-coded
+    datasets = [
+      {
+        label: 'Historic only',
+        data: d.historic.map(([x, y, v]) => ({ x, y, r: Math.max(2, v / 16) })),
+        backgroundColor: 'rgba(26,107,53,0.35)',
+        borderColor: 'rgba(26,107,53,0.5)',
+        borderWidth: 0.5,
+      },
+      {
+        label: 'Modern suitable',
+        data: d.modern.map(([x, y, v]) => ({ x, y, r: Math.max(2, v / 16) })),
+        backgroundColor: overlapColor,
+        borderColor: 'rgba(196,124,26,0.9)',
+        borderWidth: 0.5,
+      },
+    ];
+    captionText = 'Overlap zone: only ~' + (extKey === 'mammoth' ? '28' : extKey === 'dodo' ? '40' : '35') + '% of historic habitat retains comparable conditions today.';
+  }
+
+  // Axis bounds
+  const allX = [...d.historic, ...d.modern].map(p => p[0]);
+  const allY = [...d.historic, ...d.modern].map(p => p[1]);
+  const minX = Math.min(...allX), maxX = Math.max(...allX);
+  const minY = Math.min(...allY), maxY = Math.max(...allY);
+  const padX = (maxX - minX) * 0.12 || 1;
+  const padY = (maxY - minY) * 0.18 || 1;
+
+  distChartInstance = new Chart(document.getElementById('dist-chart'), {
+    type: 'bubble',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: datasets.length > 1, position: 'top', labels: { font: { size: 10, family: "'Nunito Sans',sans-serif" }, color: '#7a9a82', boxWidth: 10, padding: 8 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${d.xLabel.split(' ')[0]}: ${ctx.parsed.x.toFixed(1)}° · ${d.yLabel.split(' ')[0]}: ${ctx.parsed.y.toFixed(1)}°`
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: d.xLabel, font: { size: 10, family: "'Nunito Sans',sans-serif" }, color: '#7a9a82' },
+          min: minX - padX, max: maxX + padX,
+          ticks: { font: { size: 9, family: "'Nunito Sans',sans-serif" }, color: '#7a9a82' },
+          grid: { color: 'rgba(0,0,0,0.04)' },
+        },
+        y: {
+          title: { display: true, text: d.yLabel, font: { size: 10, family: "'Nunito Sans',sans-serif" }, color: '#7a9a82' },
+          min: minY - padY, max: maxY + padY,
+          ticks: { font: { size: 9, family: "'Nunito Sans',sans-serif" }, color: '#7a9a82' },
+          grid: { color: 'rgba(0,0,0,0.04)' },
+        }
+      }
+    }
+  });
+
+  document.getElementById('dist-caption').textContent = captionText;
+}
+
+// ── Distribution info popup ───────────────────────────────────────
+function openDistPopup() {
+  document.getElementById('dist-popup-overlay').classList.add('open');
+}
+
+function closeDistPopup(e) {
+  if (!e || e.target === document.getElementById('dist-popup-overlay') || e.currentTarget.classList.contains('dist-popup-close')) {
+    document.getElementById('dist-popup-overlay').classList.remove('open');
+  }
+}
+
 function showSection(id) {
   const el = document.getElementById(id);
   el.classList.remove('open'); void el.offsetWidth; el.classList.add('open');
