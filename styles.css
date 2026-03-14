@@ -1,3 +1,10 @@
+/* 
+
+BIOHACK 2026 
+Team name: rex-the-devs
+
+*/
+
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@300;400;600&display=swap');
 
 /* ── Tokens ──────────────────────────────────────────────────────── */
@@ -784,6 +791,35 @@ nav a:hover { color: var(--text); }
   z-index: 1;
 }
 
+/* ? help button on verdict card */
+.verdict-help-btn {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 3;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: all 0.15s;
+  backdrop-filter: blur(4px);
+  line-height: 1;
+}
+
+.verdict-help-btn:hover {
+  background: rgba(255,255,255,0.35);
+  border-color: rgba(255,255,255,0.9);
+}
+
 /* Photo layer — fills the card, sits behind content */
 .verdict-img-wrap {
   position: absolute;
@@ -856,85 +892,6 @@ nav a:hover { color: var(--text); }
 }
 
 .verdict-emoji-big { font-size: 80px; filter: drop-shadow(0 4px 16px rgba(0,0,0,0.15)); flex-shrink: 0; }
-
-/* ── Restricted section ──────────────────────────────────────────── */
-.restricted-section {
-  background: var(--white);
-  border-radius: var(--radius-sm);
-  padding: 24px;
-  box-shadow: var(--shadow-sm);
-  border: 2px dashed #e8d0c0;
-  margin-top: 20px;
-  position: relative;
-  overflow: hidden;
-}
-
-.restricted-section::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: repeating-linear-gradient(-50deg, transparent 0, transparent 14px, rgba(200,60,30,0.025) 14px, rgba(200,60,30,0.025) 16px);
-  pointer-events: none;
-}
-
-.rs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; position: relative; }
-.rs-title { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; color: #c0392b; display: flex; align-items: center; gap: 8px; }
-.rs-title::before { content: '🔒'; }
-.rs-id { font-size: 12px; color: var(--text-faint); font-weight: 600; letter-spacing: 1px; }
-
-.redacted-lines { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; position: relative; }
-.redacted-line { height: 14px; background: rgba(200,60,30,0.1); border-radius: 2px; }
-.redacted-line:nth-child(2) { width: 70%; }
-.redacted-line:nth-child(3) { width: 45%; }
-
-.access-row { display: flex; gap: 10px; margin-bottom: 8px; position: relative; }
-
-.access-input {
-  flex: 1;
-  background: var(--bg);
-  border: 2px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 16px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 14px;
-  color: var(--text);
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.access-input:focus { border-color: #c0392b; }
-.access-input::placeholder { color: var(--text-faint); }
-
-.access-btn {
-  padding: 10px 22px;
-  background: #c0392b;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: #fff;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 800;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.access-btn:hover { background: #a02820; transform: translateY(-1px); }
-.access-feedback { font-size: 13px; color: var(--text-faint); min-height: 20px; font-weight: 600; position: relative; }
-
-.unlocked-reveal {
-  background: #f0f7f2;
-  border: 2px solid #1a5c35;
-  border-radius: var(--radius-sm);
-  padding: 16px 20px;
-  margin-top: 14px;
-  animation: fadeUp 0.3s ease;
-}
-
-.ul-header { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 13px; color: #1a5c35; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-.ul-header::before { content: '✅'; }
-.ul-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.ul-item-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 2px; }
-.ul-item-value { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; color: var(--text); }
-.ul-item-value.special { color: #c47c1a; }
 
 /* ── Temperature overlap summary ─────────────────────────────────── */
 .temp-overlap-summary {

@@ -1,4 +1,7 @@
 // =============================================================================
+// BIOHACK 2026
+// Team name: rex-the-devs
+
 // scoring.js — Decision logic & ecological scoring
 // =============================================================================
 // This file is includes information about how the final scoring is made with
@@ -77,17 +80,17 @@ function scoreDivergence(candidate) {
 // Weighted average of all ecological factors.
 // Returns an object with individual factor scores and a total.
 // Why each factor is weighted the way it is:
-//   tempOverlap    (25%) — climate mismatch is the most immediate barrier
-//   biomeMatch     (20%) — determines whether habitat can support the species
+//   climateMatch   (20%) — climate mismatch is the most immediate barrier
+//   biomeMatch     (15%) — determines whether habitat can support the species
 //   habitatIntact  (20%) — even a good biome match fails if habitat is degraded
 //   preyAvail      (15%) — food source availability drives population viability
 //   humanPressure  (10%) — human conflict determines long-term survival odds
 //   dietMatch      (10%) — functional role fit matters for ecosystem integration
+//  predatorRisk    (10%) — invasive predators can cause immediate population collapse
 function computeEcoScore(extinct, candidate) {
   const temp     = scoreTempOverlap(extinct, candidate);
   const biome    = scoreBiomeMatch(extinct, candidate);
   const diet     = scoreDietMatch(extinct, candidate);
-  const diverg   = scoreDivergence(candidate);
   const habitat  = candidate.habitatIntact    ?? 50;
   const prey     = candidate.preyAvailability ?? 50;
   // Invert human pressure: high pressure = low score
@@ -130,8 +133,7 @@ function scoreLabel(score) {
 //   Step 3 — Ecological composite score determines wild vs captive
 //   Step 4 — Climate/biome match determines whether GMO is needed
 //
-// NOTE: this function is intentionally simple so your team can replace
-// it with your own scored decision tree or flowchart logic.
+
 function computeVerdict(extinct, candidate) {
   const sim   = candidate.sim;
   const eco   = computeEcoScore(extinct, candidate);

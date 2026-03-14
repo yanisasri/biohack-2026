@@ -1,4 +1,7 @@
 // =============================================================================
+// BIOHACK 2026
+// Team name: rex-the-devs
+
 // app.js — UI rendering only.
 // =============================================================================
 // This file is includes information about rendering the user interface, handling interactions, and calling
@@ -145,9 +148,10 @@ function buildCandidates(sp) {
 
   const candidates = candidateSpecies[sp.key] || [];
   candidates.forEach(c => {
-    // Pre-compute scores so card can show a quick preview
-    const ecoResult = computeEcoScore(sp, c);
-    const simColor  = simToColor(c.sim);
+    const ecoResult  = computeEcoScore(sp, c);
+    const ecoTotal   = ecoResult.total;
+    const ecoColor   = ecoToColor(ecoTotal);
+    const simColor   = simToColor(c.sim);
 
     const card = document.createElement('div');
     card.className = 'candidate-card';
@@ -159,10 +163,10 @@ function buildCandidates(sp) {
           <div class="cc-name">${c.name}</div>
           <div class="cc-sci">${c.sci}</div>
         </div>
-        <div class="cc-sim" style="color:${simColor}">${c.sim}%</div>
+        <div class="cc-sim" style="color:${ecoColor}">${ecoTotal}%</div>
       </div>
       <div class="cc-sim-bar-wrap">
-        <div class="cc-sim-bar" style="width:0%;background:${simColor}"></div>
+        <div class="cc-sim-bar" style="width:0%;background:${ecoColor}"></div>
       </div>
       <div class="cc-stats">
         <div class="cc-stat">
@@ -186,13 +190,14 @@ function buildCandidates(sp) {
           <span class="cc-stat-value">${c.tempMin}°C to ${c.tempMax}°C</span>
         </div>
         <div class="cc-stat">
-          <span class="cc-stat-label">Eco score</span>
-          <span class="cc-stat-value" style="color:${ecoToColor(ecoResult.total)}">${ecoResult.total}/100</span>
+          <span class="cc-stat-label">DNA similarity</span>
+          <span class="cc-stat-value" style="color:${simColor}">${c.sim}%</span>
         </div>
       </div>`;
     card.onclick = () => selectCandidate(c, card);
     grid.appendChild(card);
-    setTimeout(() => card.querySelector('.cc-sim-bar').style.width = c.sim + '%', 200);
+    // Bar fills to eco score out of 100
+    setTimeout(() => card.querySelector('.cc-sim-bar').style.width = ecoTotal + '%', 200);
   });
 }
 
@@ -233,9 +238,6 @@ function renderAnalysis(c) {
 
   // Temperature range chart
   drawTempChart(selectedExtinct, c);
-
-  // Eco factor bars — removed, scores now shown on radar chart
-  // renderEcoCards(ecoResult);
 
   // Summary table
   renderSummaryTable(selectedExtinct, c, ecoResult);
@@ -667,6 +669,7 @@ function renderVerdict(c) {
       <div class="verdict-img-overlay" style="background: linear-gradient(to right, ${v.color}ee 38%, ${v.color}99 60%, ${adjustColor(v.color,-20)}44 100%);"></div>
     </div>` : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,${v.color},${adjustColor(v.color,-20)});border-radius:var(--radius);"></div>`}
     <div class="verdict-deco"></div>
+    <a href="methodology.html" class="verdict-help-btn" title="How we calculate this verdict">?</a>
     <div class="verdict-inner" style="position:relative;z-index:2;">
       <div>
         <div class="verdict-label">De-Extinction Verdict</div>
