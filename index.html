@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>De-Extinction Explorer · BioHack 2026</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header>
+    <div class="logo">
+      De-Extinction Explorer
+      <span class="logo-badge">BioHack 2026</span>
+    </div>
+    <nav>
+      <a href="#">Info</a>
+      <a href="#">Adding Your Own Data</a>
+      <a href="#">?</a>
+      <a href="#">?</a>
+    </nav>
+  </header>
+
+  <!-- ── Main: cards left + hero right ─────────────────────── -->
+  <div class="main-area">
+
+    <!-- Left: species cards -->
+    <div class="species-stack" id="species-stack"></div>
+
+    <!-- Right: hero panel -->
+    <div id="hero"></div>
+        
+  </div>
+
+  <!-- ── Candidate section ──────────────────────────────────── -->
+  <div class="section" id="candidate-section">
+    <div class="section-title">Choose a Candidate Species</div>
+    <div class="candidate-grid" id="candidate-grid"></div>
+  </div>
+
+  <!-- ── Analysis section ───────────────────────────────────── -->
+  <div class="section" id="analysis-section">
+    <div class="section-title">Genomic &amp; Ecological Analysis</div>
+
+    <div class="analysis-panel" id="analysis-panel">
+
+      <div class="analysis-grid">
+
+        <!-- Similarity score -->
+        <div class="analysis-card">
+          <div class="ac-title">Genomic Similarity</div>
+          <div class="sim-big" id="sim-big">—</div>
+          <div class="sim-bar-wrap">
+            <div class="sim-bar" id="sim-bar" style="width:0%"></div>
+          </div>
+          <div style="font-size:13px;color:var(--text-faint);font-weight:600;" id="sim-label"></div>
+        </div>
+
+        <!-- Breakdown bars -->
+        <div class="analysis-card">
+          <div class="ac-title">Regional Breakdown</div>
+          <div id="breakdown-rows"></div>
+        </div>
+
+      </div>
+
+      <!-- Ecological factors -->
+      <div class="section-title" style="font-size:16px;">Ecological Assessment</div>
+      <div class="eco-row" id="eco-row"></div>
+
+      <!-- Phylogenetic tree -->
+      <div class="phylo-card">
+        <div class="ac-title">Phylogenetic Tree</div>
+        <svg id="phylo-svg" overflow="visible"></svg>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Verdict card ───────────────────────────────────────── -->
+  <div class="verdict-card" id="verdict-card"></div>
+
+
+</div><!-- /app -->
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
