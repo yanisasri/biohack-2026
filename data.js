@@ -449,7 +449,7 @@ extinctSpecies.push(
   {
     key:          'grizzly',
     name:         'Plains Grizzly Bear',
-    sci:          'Ursus arctos horribilis (plains ecotype)',
+    sci:          'Ursus arctos horribilis',
     period:       'Holocene · ~1890s',
     cause:        'Hunting, habitat loss & prey collapse',
     range:        'Canadian prairies, Great Plains',
