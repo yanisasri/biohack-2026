@@ -86,15 +86,15 @@ nav a:hover { color: var(--text); }
 /* ── Main area ───────────────────────────────────────────────────── */
 .main-area {
   display: grid;
-  grid-template-columns: 210px 1fr;
+  grid-template-columns: 440px 1fr;
   gap: 20px;
   align-items: start;
 }
 
-/* ── Species stack (left) ────────────────────────────────────────── */
+/* ── Species stack (left) — 2×3 grid ─────────────────────────────── */
 .species-stack {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
@@ -111,13 +111,13 @@ nav a:hover { color: var(--text); }
 }
 
 .species-card:hover {
-  transform: translateX(4px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-md);
 }
 
 .species-card.active {
   border-color: currentColor;
-  transform: translateX(8px);
+  transform: translateY(-5px);
   box-shadow: var(--shadow-lg);
 }
 
@@ -591,16 +591,32 @@ nav a:hover { color: var(--text); }
 .sim-big {
   font-family: 'Nunito', sans-serif;
   font-weight: 900;
-  font-size: 72px;
+  font-size: 80px;
   line-height: 1;
   letter-spacing: -2px;
   transition: color 0.4s;
+  text-align: center;
 }
 
 .sim-unit { font-size: 24px; opacity: 0.5; }
 
-.sim-bar-wrap { height: 8px; background: #e8f0e8; border-radius: 4px; margin: 12px 0; overflow: hidden; }
+.sim-bar-wrap { height: 8px; background: #e8f0e8; border-radius: 4px; margin: 14px 0 8px; overflow: hidden; }
 .sim-bar { height: 100%; border-radius: 4px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+
+/* Sim card centering wrapper */
+.sim-card-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 160px;
+  text-align: center;
+}
+
+.sim-card-inner .sim-bar-wrap {
+  width: 100%;
+}
 
 /* Eco cards — vertical list inside analysis card */
 .eco-row {
@@ -740,12 +756,14 @@ nav a:hover { color: var(--text); }
 .verdict-card {
   display: none;
   border-radius: var(--radius);
-  padding: 36px 44px;
+  padding: 0;
   margin-top: 16px;
   box-shadow: var(--shadow-lg);
   position: relative;
   overflow: hidden;
   animation: fadeUp 0.35s ease, verdictBounce 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+  min-height: 260px;
+  color: #fff;
 }
 
 .verdict-card.open { display: block; }
@@ -761,17 +779,40 @@ nav a:hover { color: var(--text); }
   top: -40px; right: -40px;
   width: 200px; height: 200px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.06);
   pointer-events: none;
+  z-index: 1;
 }
 
+/* Photo layer — fills the card, sits behind content */
+.verdict-img-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.verdict-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  display: block;
+}
+
+.verdict-img-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+/* Content sits on top of image */
 .verdict-inner {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 28px;
   align-items: center;
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  padding: 36px 44px;
 }
 
 .verdict-label {
@@ -894,6 +935,226 @@ nav a:hover { color: var(--text); }
 .ul-item-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 2px; }
 .ul-item-value { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; color: var(--text); }
 .ul-item-value.special { color: #c47c1a; }
+
+/* ── Temperature overlap summary ─────────────────────────────────── */
+.temp-overlap-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: var(--text-mid);
+  border-left: 3px solid transparent;
+}
+
+.temp-overlap-summary.ok   { background: #f0fdf4; border-left-color: #1a6b35; color: #14532d; }
+.temp-overlap-summary.warn { background: #fffbeb; border-left-color: #c47c1a; color: #78350f; }
+.temp-overlap-summary.bad  { background: #fef2f2; border-left-color: #c0392b; color: #7f1d1d; }
+
+.temp-overlap-icon {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.temp-overlap-icon.ok   { background: #1a6b35; }
+.temp-overlap-icon.warn { background: #c47c1a; }
+.temp-overlap-icon.bad  { background: #c0392b; }
+
+/* ── Distribution info button & popup ────────────────────────────── */
+.dist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.dist-info-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-faint);
+  background: transparent;
+  color: var(--text-faint);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.dist-info-btn:hover {
+  background: var(--text-faint);
+  color: #fff;
+}
+
+/* Popup overlay */
+.dist-popup-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.dist-popup-overlay.open {
+  display: flex;
+}
+
+.dist-popup {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  position: relative;
+  animation: fadeUp 0.2s ease;
+}
+
+.dist-popup-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text-faint);
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.dist-popup-close:hover { background: #f4f8f5; }
+
+.dist-popup-title {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 14px;
+  padding-right: 24px;
+}
+
+.dist-popup-section {
+  margin-bottom: 14px;
+}
+
+.dist-popup-section:last-child { margin-bottom: 0; }
+
+.dist-popup-label {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+
+.dist-popup-text {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-mid);
+}
+
+.dist-popup-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 6px;
+}
+
+.dist-popup-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+.dist-popup-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dist-popup-dot.historic { background: rgba(26,107,53,0.65); }
+.dist-popup-dot.modern   { background: rgba(192,57,43,0.65); }
+.dist-popup-dot.overlap  { background: rgba(196,124,26,0.75); }
+
+/* ── Trophic chart legend ─────────────────────────────────────────── */
+.trophic-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.trophic-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-mid);
+  font-weight: 600;
+}
+
+.trophic-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Distribution view tabs ──────────────────────────────────────── */
+.dist-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.dist-tab {
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--white);
+  color: var(--text-faint);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dist-tab:hover { border-color: #1a5c35; color: #1a5c35; }
+.dist-tab.active { background: #1a5c35; border-color: #1a5c35; color: #fff; }
+
+/* ── Chart captions ──────────────────────────────────────────────── */
+.chart-caption {
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.5;
+  margin-top: 8px;
+  font-style: italic;
+}
 
 /* Color helpers for sim */
 .c-green { color: #1a6b35; }
