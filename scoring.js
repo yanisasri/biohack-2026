@@ -1,11 +1,10 @@
 // =============================================================================
 // scoring.js — Decision logic & ecological scoring
 // =============================================================================
-// This file is the ONLY place that encodes your team's scientific reasoning.
-// app.js calls these functions but knows nothing about the logic inside them.
+// This file is includes information about how the final scoring is made with
+// respect to the ecological factors. It is intentionally separate from app.js
+// to isolate the decision logic from the UI and data layers.
 //
-// To change how verdicts are computed, edit this file only.
-// To add a new species, you do NOT need to touch this file at all.
 // =============================================================================
 
 // ── Temperature overlap score (0–100) ────────────────────────────

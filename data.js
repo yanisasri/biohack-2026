@@ -2,10 +2,10 @@
 // data.js — Species data
 // =============================================================================
 // To add a new extinct species:
-//   1. Add an object to `extinctSpecies`
-//   2. Add its candidates to `candidateSpecies[key]`
-//   3. Add its phylo tree to `phyloTrees[key]`
-//   That's it. The scoring and UI are fully automatic.
+//   1. Add an object to `extinctSpecies`  (include sci name — used for phylo API)
+//   2. Add its candidates to `candidateSpecies[key]`  (include sci name)
+//   That's it. Phylogenetic trees are generated automatically via the
+//   Open Tree of Life API using the scientific names you provide.
 //
 // Field reference:
 //   Extinct species
@@ -222,73 +222,6 @@ const candidateSpecies = {
     },
   ],
 };
-
-// ── Phylogenetic tree data ────────────────────────────────────────
-// To add a new species: add an entry keyed by extinctSpecies[n].key.
-// node types: 'extinct' | 'candidate' | 'ancestor'
-
-const phyloTrees = {
-  mammoth: {
-    nodes: [
-      { id: 'proboscidea',  label: 'Proboscidea',      x: 20,  y: 50,  type: 'ancestor'  },
-      { id: 'elephantidae', label: 'Elephantidae',     x: 100, y: 50,  type: 'ancestor'  },
-      { id: 'mammuthus',    label: 'Mammuthus',        x: 190, y: 25,  type: 'ancestor'  },
-      { id: 'mammoth',      label: 'M. primigenius †', x: 310, y: 15,  type: 'extinct'   },
-      { id: 'elephas',      label: 'Elephas',          x: 190, y: 55,  type: 'ancestor'  },
-      { id: 'asian',        label: 'E. maximus',       x: 310, y: 45,  type: 'candidate' },
-      { id: 'loxodonta',    label: 'Loxodonta',        x: 190, y: 85,  type: 'ancestor'  },
-      { id: 'african',      label: 'L. africana',      x: 310, y: 80,  type: 'candidate' },
-    ],
-    edges: [
-      ['proboscidea','elephantidae'],
-      ['elephantidae','mammuthus'],['elephantidae','elephas'],['elephantidae','loxodonta'],
-      ['mammuthus','mammoth'],['elephas','asian'],['loxodonta','african'],
-    ],
-  },
-  dodo: {
-    nodes: [
-      { id: 'columbiformes', label: 'Columbiformes',   x: 20,  y: 50,  type: 'ancestor'  },
-      { id: 'columbidae',    label: 'Columbidae',      x: 100, y: 50,  type: 'ancestor'  },
-      { id: 'raphinae',      label: 'Raphinae',        x: 190, y: 22,  type: 'ancestor'  },
-      { id: 'dodo',          label: 'R. cucullatus †', x: 310, y: 12,  type: 'extinct'   },
-      { id: 'caloenadinae',  label: 'Caloenadinae',    x: 190, y: 55,  type: 'ancestor'  },
-      { id: 'nicobar',       label: 'C. nicobarica',   x: 310, y: 50,  type: 'candidate' },
-      { id: 'gouridae',      label: 'Gouridae',        x: 190, y: 82,  type: 'ancestor'  },
-      { id: 'victoria',      label: 'G. victoria',     x: 310, y: 77,  type: 'candidate' },
-    ],
-    edges: [
-      ['columbiformes','columbidae'],
-      ['columbidae','raphinae'],['columbidae','caloenadinae'],['columbidae','gouridae'],
-      ['raphinae','dodo'],['caloenadinae','nicobar'],['gouridae','victoria'],
-    ],
-  },
-  nfwolf: {
-    nodes: [
-      { id: 'carnivora', label: 'Carnivora',           x: 20,  y: 50,  type: 'ancestor'  },
-      { id: 'canidae',   label: 'Canidae',              x: 90,  y: 50,  type: 'ancestor'  },
-      { id: 'canis',     label: 'Canis',                x: 170, y: 50,  type: 'ancestor'  },
-      { id: 'clupus',    label: 'C. lupus',             x: 260, y: 35,  type: 'ancestor'  },
-      { id: 'nfwolf',    label: 'C. l. labradorius †',  x: 380, y: 18,  type: 'extinct'   },
-      { id: 'grey',      label: 'C. lupus',             x: 380, y: 35,  type: 'candidate' },
-      { id: 'ewolf',     label: 'C. lycaon',            x: 380, y: 55,  type: 'candidate' },
-    ],
-    edges: [
-      ['carnivora','canidae'],['canidae','canis'],['canis','clupus'],
-      ['clupus','nfwolf'],['clupus','grey'],['clupus','ewolf'],
-    ],
-  },
-};
-
-// ── Genomic breakdown region labels ──────────────────────────────
-// These match the keys in candidate.breakdownScores
-const breakdownLabels = [
-  'Coding sequences',
-  'Mitochondrial DNA',
-  'Regulatory regions',
-  'Immune loci',
-  'Morphology genes',
-  'Non-coding DNA',
-];
 
 // ── Verdict scenario display config ──────────────────────────────
 // The verdict KEY is computed by scoring.js — this just maps key → display
