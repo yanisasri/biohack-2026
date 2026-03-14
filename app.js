@@ -124,12 +124,10 @@ function renderHero(sp) {
           <div class="fact-chip"><span>Extinct</span>${sp.period}</div>
           <div class="fact-chip"><span>Cause</span>${sp.cause}</div>
           <div class="fact-chip"><span>Habitat</span>${sp.habitat}</div>
-          <div class="fact-chip"><span>Genome</span>${sp.genome}</div>
-          <div class="fact-chip"><span>DNA</span>${sp.dnaQuality}</div>
           <div class="fact-chip"><span>Range</span>${sp.range}</div>
+          <div class="fact-chip"><span>Ecosystem Role</span>${sp.role}</div>
           <div class="fact-chip"><span>Diet</span>${sp.diet}</div>
-          <div class="fact-chip"><span>Weight</span>${sp.weight}</div>
-          <div class="fact-chip"><span>Length</span>${sp.length}</div>
+          <div class="fact-chip"><span>Mean Annual Temp [range]</span>${sp.temp}</div>
         </div>
         <button class="hero-cta" onclick="document.getElementById('candidate-section').scrollIntoView({behavior:'smooth'})">
           ↓ Choose a Candidate Species
@@ -169,8 +167,11 @@ function buildCandidates(sp) {
       <div class="cc-sim-bar-wrap">
         <div class="cc-sim-bar" style="width:0%;background:${simColor}"></div>
       </div>
-      <div class="cc-status">${c.status}</div>
-      <div class="cc-notes">${c.notes}</div>`;
+      <div class="fact-chip"><span>Status</span>${c.status}</div>
+      <div class="fact-chip"><span>Habitat</span>${c.habitat}</div>
+      <div class="fact-chip"><span>Divergence</span>${c.divergence}</div>
+      <div class="fact-chip"><span>Diet</span>${c.diet}</div>
+      <div class="fact-chip"><span>Mean Annual Temp [range]</span>${c.temp}</div>`;
     card.onclick = () => selectCandidate(c, card);
     grid.appendChild(card);
     setTimeout(() => card.querySelector('.cc-sim-bar').style.width = c.sim + '%', 200);
