@@ -2,10 +2,10 @@
 // data.js — Species data
 // =============================================================================
 // To add a new extinct species:
-//   1. Add an object to `extinctSpecies`
-//   2. Add its candidates to `candidateSpecies[key]`
-//   3. Add its phylo tree to `phyloTrees[key]`
-//   That's it. The scoring and UI are fully automatic.
+//   1. Add an object to `extinctSpecies`  (include sci name — used for phylo API)
+//   2. Add its candidates to `candidateSpecies[key]`  (include sci name)
+//   That's it. Phylogenetic trees are generated automatically via the
+//   Open Tree of Life API using the scientific names you provide.
 //
 // Field reference:
 //   Extinct species
