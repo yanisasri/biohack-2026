@@ -4,44 +4,49 @@ const extinctSpecies = [
     key:        'mammoth',
     name:       'Woolly Mammoth',
     sci:        'Mammuthus primigenius',
-    period:     'Pleistocene · ~4,000 BP', 
+    period:     'Pleistocene · ~3,900 BP', 
     cause:      'Rapid climate warming & human overhunting',
     habitat:    'Sub‑Arctic tundra/steppe',
     range:      'Siberia, N. Eurasia, N. America',
-    diet:       'Grasses, herbs, shrubs',
+    diet:       'Graminoid grazers',
     role:       'Ecosystem engineer',
+    temp:       '-5 °C',
     icon:       '🦣',
     cardColor:  '#e8f4e8',
     cardAccent: '#2d7a4a',
     heroColor:  '#1a5c35',
     heroLight:  '#e8f4e8',
-    desc:       'The iconic Ice Age giant. Adapted to frigid steppe with dense wool, curved foraging tusks, and cold-adapted haemoglobin. Last populations survived on Wrangel Island until ~1650 BCE.',
+    desc:       'The iconic Ice Age giant. Adapted to frigid steppe with dense wool, curved foraging tusks, and cold-adapted haemoglobin.',
   },
   {
     key:        'dodo',
     name:       'Dodo',
     sci:        'Raphus cucullatus',
-    period:     'Holocene · ~1681 CE',
+    period:     'Holocene · ~1690 AD',
     cause:      'Hunting & introduced predators',
     habitat:    'Tropical coastal forest',
     range:      'Mauritius, Indian Ocean',
-    diet:       'Fallen fruit, seeds, roots',
+    diet:       'Fruit, seeds',
+    role:       'Seed dispenser',
+    temp:       '22 - 30 °C',
     icon:       '🦤',
     cardColor:  '#fef3e2',
     cardAccent: '#c47c1a',
     heroColor:  '#9a5c10',
     heroLight:  '#fef3e2',
-    desc:       'Entirely flightless and fearless of humans — a trait that made it catastrophically easy to hunt. Closest living relative is the Nicobar Pigeon. Laid a single egg per season.',
+    desc:       'Entirely flightless and fearless of humans, a trait that made it catastrophically easy to hunt.',
   },
   {
     key:        'nfwolf',
     name:       'Newfoundland Wolf',
     sci:        'Canis lupus subspecies C.l. labradorius',
-    period:     'Holocene · ~1930 CE',
+    period:     'Holocene · ~1930s',
     cause:      'Human overhunting & prey depletion',
-    habitat:    'Boreal forest, taiga, & tundra',
+    habitat:    'Boreal forest, tundra edge',
     range:      'Newfoundland & Labrador, & northern Quebec, Canada',
-    diet:       'Caribou, moose, Muskoxen',
+    diet:       'Caribou, small mammals',
+    role:       'Apex predator',
+    temp:       '-2 °C',
     icon:       '🐺',
     cardColor:  '#eaf0fb',
     cardAccent: '#2a4fa0',
@@ -51,28 +56,28 @@ const extinctSpecies = [
   },
 ];
 
+// ── Candidate species ─────────────────────────────────────────────
+const candidateSpecies = {
+  mammoth: [
+    { name: 'Asian Elephant',           sci: 'Elephas maximus',           sim: 99.6, icon: '🐘', status: 'Endangered',      temp: '25 °C',    diet: 'Mixed grazer / browser',   habitat: 'Tropical / subtropical forest',   divergence: '~6 million years' },
+    { name: 'African Savanna Elephant', sci: 'Loxodonta africana',        sim: 99.5, icon: '🐘', status: 'Endangered',      temp: '28 °C',    diet: 'Mixed grazer / browser',   habitat: 'Savanna / grassland',   divergence: '~7 million years' }
+  ],
+  dodo: [
+    { name: 'Nicobar Pigeon',          sci: 'Caloenas nicobarica',  sim: 95, icon: '🕊', status: 'Near Threatened', temp: '22 - 33 °C',    diet: 'Fruit, seeds' ,    habitat: 'Coastal woodlands, islands',   divergence: '~25 million years' },
+    { name: 'Victoria Crowned Pigeon', sci: 'Goura victoria',       sim: 94, icon: '🕊', status: 'Vulnerable',      temp: '10 - 30 °C',    diet: 'Grains, seeds' ,   habitat: 'Urban / cliffs',   divergence: '~30 million years' }
+  ],
+  nfwolf: [
+    { name: 'Grey Wolf',         sci: 'Canis lupus',    sim: 99.9, icon: '🐺', status: 'Least Concern',       temp: '-10 - 10 °C',    diet: 'Ungulates, caribou',   habitat: 'Boreal forest & alpine',   divergence: '~0.1 million years' },
+    { name: 'Eastern Wolf',      sci: 'Canis lycaon',   sim: 99.7, icon: '🐺', status: 'Threatened (Canada)', temp: '0 - 15 °C',      diet: 'Deer, moose',      habitat: 'Mixed forest / Great Lakes region',   divergence: '~0.5 million years' }
+  ],
+};
+
+
 
 
 // TEST DATA
 
-// ── Candidate species ─────────────────────────────────────────────
-const candidateSpecies = {
-  mammoth: [
-    { name: 'Asian Elephant',           sci: 'Elephas maximus',           sim: 99.6, icon: '🐘', status: 'Endangered',          ecology: 'wild-gm',    notes: 'Closest living relative. Shares key genetic loci with cold-adaptation modification possible.' },
-    { name: 'African Savanna Elephant', sci: 'Loxodonta africana',        sim: 99.5, icon: '🐘', status: 'Vulnerable',           ecology: 'captive',    notes: 'Diverged ~6 Ma. Lower similarity but important for comparative analysis.' }
-    // { name: 'Sumatran Elephant',        sci: 'Elephas maximus sumatranus', sim: 72, icon: '🐘', status: 'Critically Endangered', ecology: 'no-attempt', notes: 'High genomic proximity but conservation concerns limit use as template.' },
-  ],
-  dodo: [
-    { name: 'Nicobar Pigeon',      sci: 'Caloenas nicobarica',  sim: 79, icon: '🕊', status: 'Near Threatened', ecology: 'captive',    notes: 'Closest extant relative. Island-forest ecology closely mirrors Dodo niche.' },
-    { name: 'Rodrigues Solitaire', sci: 'Pezophaps solitaria',  sim: 85, icon: '🦤', status: 'Extinct (1730s)', ecology: 'captive',    notes: 'Also extinct — included for comparative phylogenetic context.' },
-    { name: 'Victoria Crowned Pigeon', sci: 'Goura victoria',   sim: 61, icon: '🕊', status: 'Vulnerable',      ecology: 'no-attempt', notes: 'Moderate similarity. Rainforest origin differs from island habitat.' },
-  ],
-  nfwolf: [
-    { name: 'Eastern Wolf',      sci: 'Canis lupus lycaon',    sim: 94, icon: '🐺', status: 'Special Concern', ecology: 'wild-reloc', notes: 'Nearest geographic & genomic relative. Shares boreal forest habitat.' },
-    { name: 'Great Plains Wolf', sci: 'Canis lupus nubilus',   sim: 88, icon: '🐺', status: 'Least Concern',   ecology: 'wild-gm',    notes: 'High genomic similarity. Yellowstone reintroduction experience is valuable.' },
-    { name: 'Domestic Dog',      sci: 'Canis lupus familiaris', sim: 32, icon: '🐕', status: 'Domesticated',    ecology: 'impossible', notes: 'Included for contrast — domestication genes make it a poor template.' },
-  ],
-};
+
 
 // ── Ecological factors per candidate ─────────────────────────────
 const ecoFactors = {
