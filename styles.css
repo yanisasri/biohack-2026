@@ -748,9 +748,47 @@ nav a:hover { color: var(--text); }
   box-shadow: var(--shadow-sm);
   border: 1.5px solid var(--border);
   margin-bottom: 16px;
+  overflow: hidden;
 }
 
-#phylo-svg { overflow: visible; }
+.phylo-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+/* Scrollable wrapper — horizontal scroll when tree is wider than the card */
+.phylo-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+  /* Custom thin scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #b0cfc0 #f0f7f2;
+}
+
+.phylo-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+
+.phylo-scroll::-webkit-scrollbar-track {
+  background: #f0f7f2;
+  border-radius: 3px;
+}
+
+.phylo-scroll::-webkit-scrollbar-thumb {
+  background: #b0cfc0;
+  border-radius: 3px;
+}
+
+/* SVG has a real pixel width set by JS — never compress it */
+#phylo-svg {
+  overflow: visible;
+  display: block;
+  min-width: 100%;
+}
 
 /* ── Verdict card ────────────────────────────────────────────────── */
 .verdict-card {

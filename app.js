@@ -17,7 +17,7 @@ function init() {
   document.getElementById('access-key')
     .addEventListener('keydown', e => { if (e.key === 'Enter') tryAccess(); });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeDistPopup();
+    if (e.key === 'Escape') { closeDistPopup(); closePhyloPopup(); }
   });
 }
 
@@ -240,9 +240,14 @@ function renderAnalysis(c) {
   // Summary table
   renderSummaryTable(selectedExtinct, c, ecoResult);
 
-  // Phylo tree — async, fetches from Open Tree of Life using scientific names
-  const adjustedSciName = selectedExtinct.sci.replace(' ssp. ', ' '); // For API compatibility
-  drawPhyloTree(adjustedSciName, c.sci);
+  // Phylo tree — pass extinct + ALL candidates so tree covers the full clade
+  // Clean ecotype notes from sci name before querying (e.g. "(plains ecotype)")
+  const cleanExtinctSci = selectedExtinct.sci
+    .replace(/\s*\(.*?\)/g, '')   // remove parenthetical notes
+    .replace(' ssp. ', ' ')       // normalise subspecies
+    .trim();
+  const allCandidates = candidateSpecies[selectedExtinct.key] || [];
+  drawPhyloTree(cleanExtinctSci, c.sci, allCandidates);
 
   // Trophic chart
   setTimeout(() => drawTrophicChart(selectedExtinct.key), 150);
@@ -693,26 +698,40 @@ function renderVerdict(c) {
 }
 
 // =============================================================================
-// Phylogenetic tree — Open Tree of Life API
+// Phylogenetic tree — generated on-the-spot via Open Tree of Life API
 // =============================================================================
-// Inputs:  extinct species sci name  +  candidate species sci name
-// Process: 1. TNRS  → resolve names to OTT IDs
-//          2. induced_subtree → Newick string covering both taxa
+// Inputs:  cleaned extinct sci name + selected candidate sci name
+//          + full list of all candidate objects for this extinct species
+// Process: 1. TNRS  → resolve ALL names to OTT IDs
+//          2. induced_subtree → Newick covering all taxa
 //          3. Parse Newick → JS tree
-//          4. Render cladogram SVG with colour-coded nodes
-// Fallback: if API unreachable, shows a friendly offline message
+//          4. Cladogram SVG:
+//             • leaf nodes only are classified as extinct / selected / relative
+//             • ancestor / internal nodes are always grey (never misclassified)
+//             • leaf labels shown as pill badges, always visible at right margin
+//             • internal node labels shown as tooltip on hover only
+//             • selected candidate gets halo ring + bold label
+// Fallback: network unavailable → friendly message
 // =============================================================================
 
-// Cache so we don't re-fetch the same pair
 const _phyloCache = {};
 
-async function drawPhyloTree(extinctSci, candidateSci) {
-  const svg = document.getElementById('phylo-svg');
-  const NS = 'http://www.w3.org/2000/svg';
+// ── Sci-name sanitiser — strips ecotype notes, ssp. etc. ─────────
+function sanitiseSciName(raw) {
+  return (raw || '')
+    .replace(/\s*\(.*?\)/g, '')   // remove "(plains ecotype)" etc.
+    .replace(/\s+ssp\.\s+/g, ' ') // Canis lupus ssp. x → Canis lupus x
+    .replace(/\s+subsp\.\s+/g, ' ')
+    .trim();
+}
 
-  // Loading state
+async function drawPhyloTree(extinctSci, selectedCandidateSci, allCandidates) {
+  const svg = document.getElementById('phylo-svg');
+  const NS  = 'http://www.w3.org/2000/svg';
+
+  // Clear + show loading
   svg.setAttribute('viewBox', '0 0 600 60');
-  svg.setAttribute('width', '100%');
+  svg.setAttribute('width',  '100%');
   svg.setAttribute('height', '60');
   svg.innerHTML = '';
   const loading = document.createElementNS(NS, 'text');
@@ -720,38 +739,39 @@ async function drawPhyloTree(extinctSci, candidateSci) {
   loading.setAttribute('text-anchor', 'middle');
   loading.setAttribute('font-family', "'Nunito Sans',sans-serif");
   loading.setAttribute('font-size', '13'); loading.setAttribute('fill', '#7a9a82');
-  loading.textContent = 'Loading phylogenetic tree from Open Tree of Life…';
+  loading.textContent = 'Generating phylogenetic tree from Open Tree of Life…';
   svg.appendChild(loading);
 
-  const cacheKey = `${extinctSci}||${candidateSci}`;
+  // Build name list: extinct + every candidate (sanitised)
+  const allCandidateSciNames = (allCandidates || []).map(c => sanitiseSciName(c.sci));
+  const cleanExtinct = sanitiseSciName(extinctSci);
+  const cleanSelected = sanitiseSciName(selectedCandidateSci);
+  const namesToQuery  = [cleanExtinct, ...allCandidateSciNames].filter(Boolean);
+  const cacheKey      = namesToQuery.join('||');
+
   if (_phyloCache[cacheKey]) {
-    renderPhyloSVG(svg, NS, _phyloCache[cacheKey], extinctSci, candidateSci);
+    renderPhyloSVG(svg, NS, _phyloCache[cacheKey], cleanExtinct, cleanSelected, allCandidateSciNames);
     return;
   }
 
   try {
-    // ── Fetch all relevant species ───────────────────────
-    const names = [extinctSci, candidateSci, ...getLivingRelatives(extinctSci)];
+    // Step 1: TNRS — resolve names → OTT IDs
     const tnrsRes = await fetch('https://api.opentreeoflife.org/v3/tnrs/match_names', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ names, do_approximate_matching: true }),
+      body:    JSON.stringify({ names: namesToQuery, do_approximate_matching: true }),
     });
     if (!tnrsRes.ok) throw new Error('TNRS failed: ' + tnrsRes.status);
     const tnrsData = await tnrsRes.json();
 
-    // Compute OTT IDs and build a list for the tree
     const ottIds = [];
     tnrsData.results.forEach(result => {
       const match = result.matches?.[0];
-      if (match?.taxon?.ott_id) {
-        ottIds.push(match.taxon.ott_id);
-      }
+      if (match?.taxon?.ott_id) ottIds.push(match.taxon.ott_id);
     });
+    if (ottIds.length < 2) throw new Error('Could not resolve enough species names');
 
-    if (ottIds.length < 2) throw new Error('Could not resolve all species names');
-
-    // ── Get induced subtree Newick ───────────────────────
+    // Step 2: induced_subtree → Newick
     const treeRes = await fetch('https://api.opentreeoflife.org/v3/tree_of_life/induced_subtree', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -763,181 +783,244 @@ async function drawPhyloTree(extinctSci, candidateSci) {
 
     const root = parseNewick(treeData.newick);
     _phyloCache[cacheKey] = root;
-
-    renderPhyloSVG(svg, NS, root, extinctSci, candidateSci);
+    renderPhyloSVG(svg, NS, root, cleanExtinct, cleanSelected, allCandidateSciNames);
 
   } catch (err) {
     console.warn('Phylo API error:', err.message);
-    showPhyloFallback(svg, NS, extinctSci, candidateSci, err.message);
+    showPhyloFallback(svg, NS, cleanExtinct, cleanSelected, err.message);
   }
 }
 
-function getLivingRelatives(extinctSci) {
-  // Fetch or compile living relatives for the specific extinct species from your dataset or an API
-  // Example: Return a list of common living relatives as scientific names
-  const relatives = {
-    'Mammuthus primigenius': ['Elephas maximus', 'Loxodonta africana'], // example relatives
-    'Canis lupus labradorius': ['Canis lupus'], // includes the grey wolf
-    // Add more extinct species as needed
-  };
-  return relatives[extinctSci] || [];
-}
-
 // ── Newick parser ─────────────────────────────────────────────────
-// Converts a Newick string into a nested { name, branchLength, children[] }
 function parseNewick(s) {
-  // Tokenise into parens, commas, colons, semicolons, and name/length strings
   const tokens = s.match(/\(|\)|,|;|:[^,);()]+|[^,();:]+/g) || [];
   let pos = 0;
-
   function parseNode() {
     const node = { name: '', branchLength: null, children: [] };
-
     if (tokens[pos] === '(') {
-      pos++; // consume '('
+      pos++;
       node.children.push(parseNode());
-      while (tokens[pos] === ',') {
-        pos++;
-        node.children.push(parseNode());
-      }
-      if (tokens[pos] === ')') pos++; // consume ')'
+      while (tokens[pos] === ',') { pos++; node.children.push(parseNode()); }
+      if (tokens[pos] === ')') pos++;
     }
-
-    // Optional label after closing paren or for leaf
     if (pos < tokens.length && tokens[pos] !== '(' && tokens[pos] !== ')' &&
         tokens[pos] !== ',' && tokens[pos] !== ';' && !tokens[pos].startsWith(':')) {
       node.name = tokens[pos].replace(/_/g, ' ').trim();
       pos++;
     }
-
-    // Optional branch length
     if (pos < tokens.length && tokens[pos]?.startsWith(':')) {
       node.branchLength = parseFloat(tokens[pos].slice(1)) || 0;
       pos++;
     }
-
     return node;
   }
-
-  const root = parseNode();
-  return root;
+  return parseNode();
 }
 
 // ── Cladogram layout ──────────────────────────────────────────────
-// Assigns (x, y) pixel positions to every node for a right-to-left cladogram.
-// Leaves are pinned to the right; internal nodes are positioned by depth.
 function layoutCladogram(root, W, H, pad) {
-  // Count leaves
   function leafCount(n) {
-    return n.children.length === 0 ? 1 : n.children.reduce((s, c) => s + leafCount(c), 0);
+    return n.children.length === 0 ? 1 : n.children.reduce((s,c) => s + leafCount(c), 0);
   }
   const totalLeaves = leafCount(root);
   const rowH = (H - pad.top - pad.bottom) / Math.max(1, totalLeaves - 1);
-
-  // Assign y to leaves top-to-bottom, average for internals
   let leafIdx = 0;
   function assignY(n) {
-    if (n.children.length === 0) {
-      n._y = pad.top + leafIdx * rowH;
-      leafIdx++;
-    } else {
+    if (n.children.length === 0) { n._y = pad.top + leafIdx++ * rowH; }
+    else {
       n.children.forEach(assignY);
       const ys = n.children.map(c => c._y);
       n._y = (Math.min(...ys) + Math.max(...ys)) / 2;
     }
   }
   assignY(root);
-
-  // Depth for cladogram (equal branch lengths)
   function treeDepth(n) {
     return n.children.length === 0 ? 0 : 1 + Math.max(...n.children.map(treeDepth));
   }
   const maxDepth = treeDepth(root) || 1;
   const xStep    = (W - pad.left - pad.right) / maxDepth;
-
   function assignX(n, depth) {
-    n._x = n.children.length === 0
-      ? W - pad.right              // leaves pinned right
-      : pad.left + depth * xStep;  // internals by depth
+    n._x = n.children.length === 0 ? W - pad.right : pad.left + depth * xStep;
     n.children.forEach(c => assignX(c, depth + 1));
   }
   assignX(root, 0);
 }
 
 // ── Render cladogram SVG ──────────────────────────────────────────
-function renderPhyloSVG(svg, NS, root, extinctSci, candidateSci) {
-  // Dynamic height based on leaf count
+function renderPhyloSVG(svg, NS, root, extinctSci, selectedCandidateSci, allCandidateSciNames) {
   function leafCount(n) { return n.children.length === 0 ? 1 : n.children.reduce((s,c)=>s+leafCount(c),0); }
-  const leaves  = leafCount(root);
-  const ROW_H   = 26;
-  const H       = Math.max(180, leaves * ROW_H + 70);
-  const W       = 700;
-  const pad     = { top: 20, bottom: 40, left: 20, right: 220 };
+  function treeDepthFn(n) { return n.children.length === 0 ? 0 : 1 + Math.max(...n.children.map(treeDepthFn)); }
+
+  const leaves   = leafCount(root);
+  const depth    = treeDepthFn(root) || 1;
+  const ROW_H    = 30;
+  const H        = Math.max(200, leaves * ROW_H + 80);
+  // Width scales with depth — extra room so internal node labels don't crowd
+  const W        = Math.max(760, depth * 150 + 320);
+  const pad      = { top: 38, bottom: 56, left: 28, right: 260 };
 
   svg.innerHTML = '';
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  svg.setAttribute('width',   '100%');
-  svg.setAttribute('height',  H);
+  // Set real pixel width — the .phylo-scroll wrapper handles horizontal scrolling
+  svg.setAttribute('width',  W);
+  svg.setAttribute('height', H);
 
   layoutCladogram(root, W, H, pad);
 
-  // Colour helper — match by name substring
-  function nodeColor(name) {
-    if (!name) return '#b0cfc0';
-    const n = name.toLowerCase();
-    const e = extinctSci.toLowerCase().split(' ');
-    const c = candidateSci.toLowerCase().split(' ');
-    // Genus or species word match
-    if (e.some(w => w.length > 3 && n.includes(w))) return '#c0392b';  // extinct
-    if (c.some(w => w.length > 3 && n.includes(w))) return '#1a6b35';  // candidate
-    return '#b0cfc0';  // ancestor / other
+  // ── Leaf-only classifier — never mis-tags ancestor nodes ──────
+  // Returns: 'extinct' | 'selected' | 'relative' | 'ancestor'
+  function classify(n) {
+    if (n.children.length > 0) return 'ancestor'; // internal node: always ancestor
+    const name = (n.name || '').toLowerCase().replace(/_/g, ' ');
+    if (!name) return 'ancestor';
+
+    // Need at least 2 words (genus + epithet) to safely match a leaf
+    const nameWords = name.split(/\s+/).filter(w => w.length > 2);
+
+    // Check extinct — require BOTH genus and epithet to match (not just genus)
+    const extWords = extinctSci.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const extMatch = extWords.length >= 2
+      ? extWords.every(w => name.includes(w))
+      : extWords.some(w => w.length > 4 && name.includes(w));
+    if (extMatch) return 'extinct';
+
+    // Check selected candidate
+    const selWords = selectedCandidateSci.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const selMatch = selWords.length >= 2
+      ? selWords.every(w => name.includes(w))
+      : selWords.some(w => w.length > 4 && name.includes(w));
+    if (selMatch) return 'selected';
+
+    // Check other candidates
+    for (const sci of allCandidateSciNames) {
+      const relWords = sci.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      const relMatch = relWords.length >= 2
+        ? relWords.every(w => name.includes(w))
+        : relWords.some(w => w.length > 4 && name.includes(w));
+      if (relMatch) return 'relative';
+    }
+
+    return 'ancestor';
   }
+
+  const COLORS = {
+    extinct:  { stroke: '#c0392b', dotFill: '#c0392b', text: '#c0392b', badge: '#fde8e8', badgeText: '#9b1c1c' },
+    selected: { stroke: '#1a5c35', dotFill: '#1a5c35', text: '#1a5c35', badge: '#d1fae5', badgeText: '#065f46' },
+    relative: { stroke: '#5a9a70', dotFill: '#ffffff', text: '#5a9a70', badge: '#ecfdf5', badgeText: '#1a7a4a' },
+    ancestor: { stroke: '#b0cfc0', dotFill: '#e8f4e8', text: '#7a9a82', badge: null,     badgeText: null       },
+  };
 
   function isLeaf(n) { return n.children.length === 0; }
 
-  // Draw edges first (so nodes sit on top)
+  // ── Draw edges ────────────────────────────────────────────────
   function drawEdges(n) {
     n.children.forEach(child => {
-      // Horizontal from parent x to child x at parent y, then vertical to child y
       const path = document.createElementNS(NS, 'path');
-      path.setAttribute('d', `M${n._x},${n._y} H${child._x} V${child._y}`);
+      path.setAttribute('d',            `M${n._x},${n._y} H${child._x} V${child._y}`);
       path.setAttribute('fill',         'none');
       path.setAttribute('stroke',       '#d0e8d8');
-      path.setAttribute('stroke-width', '1.8');
+      path.setAttribute('stroke-width', '1.5');
       svg.appendChild(path);
       drawEdges(child);
     });
   }
   drawEdges(root);
 
-  // Draw nodes + labels
+  // Highlight path to selected candidate
+  function findPath(n, path = []) {
+    const cur = [...path, n];
+    if (isLeaf(n) && classify(n) === 'selected') return cur;
+    for (const c of n.children) { const r = findPath(c, cur); if (r) return r; }
+    return null;
+  }
+  const selPath = findPath(root);
+  if (selPath && selPath.length > 1) {
+    for (let i = 0; i < selPath.length - 1; i++) {
+      const p = selPath[i], c = selPath[i+1];
+      const hi = document.createElementNS(NS, 'path');
+      hi.setAttribute('d',            `M${p._x},${p._y} H${c._x} V${c._y}`);
+      hi.setAttribute('fill',         'none');
+      hi.setAttribute('stroke',       '#1a5c35');
+      hi.setAttribute('stroke-width', '2');
+      svg.appendChild(hi);
+    }
+  }
+
+  // ── Draw nodes ────────────────────────────────────────────────
   function drawNodes(n) {
-    const col    = nodeColor(n.name);
-    const radius = isLeaf(n) ? 5 : 3;
+    const cls    = classify(n);
+    const colors = COLORS[cls];
+    const leaf   = isLeaf(n);
+    const r      = leaf ? 6 : 3.5;
+
+    // Selected candidate outer ring
+    if (cls === 'selected') {
+      const halo = document.createElementNS(NS, 'circle');
+      halo.setAttribute('cx', n._x); halo.setAttribute('cy', n._y); halo.setAttribute('r', r + 5);
+      halo.setAttribute('fill', 'none');
+      halo.setAttribute('stroke', '#1a5c35');
+      halo.setAttribute('stroke-width', '1.2');
+      halo.setAttribute('stroke-dasharray', '3,2');
+      svg.appendChild(halo);
+    }
 
     const dot = document.createElementNS(NS, 'circle');
-    dot.setAttribute('cx', n._x); dot.setAttribute('cy', n._y);
-    dot.setAttribute('r',  radius);
-    dot.setAttribute('fill',         isLeaf(n) ? col : '#e8f4e8');
-    dot.setAttribute('stroke',       col);
-    dot.setAttribute('stroke-width', '2');
+    dot.setAttribute('cx', n._x); dot.setAttribute('cy', n._y); dot.setAttribute('r', r);
+    dot.setAttribute('fill',         leaf ? colors.dotFill : colors.dotFill);
+    dot.setAttribute('stroke',       colors.stroke);
+    dot.setAttribute('stroke-width', cls === 'selected' ? '2.5' : '1.5');
+    dot.setAttribute('style', 'cursor:pointer');
     svg.appendChild(dot);
 
-    if (n.name) {
+    // ── Leaf: draw pill badge label ──────────────────────────
+    if (leaf && n.name) {
+      let label = n.name;
+      if (cls === 'extinct')  label += '  †';
+      if (cls === 'selected') label += '  ★';
+
+      const bx = n._x + 14;
+      const by = n._y;
+
+      // Pill background
+      if (colors.badge) {
+        const pill = document.createElementNS(NS, 'rect');
+        // Estimate text width: ~6.5px/char at 10.5px font
+        const tw = label.length * 6.5 + 14;
+        pill.setAttribute('x',      bx - 4);
+        pill.setAttribute('y',      by - 10);
+        pill.setAttribute('width',  tw);
+        pill.setAttribute('height', 20);
+        pill.setAttribute('rx',     '10');
+        pill.setAttribute('fill',   colors.badge);
+        pill.setAttribute('stroke', colors.stroke);
+        pill.setAttribute('stroke-width', '0.8');
+        svg.appendChild(pill);
+      }
+
       const txt = document.createElementNS(NS, 'text');
-      const isExtinct   = nodeColor(n.name) === '#c0392b';
-      const isCandidate = nodeColor(n.name) === '#1a6b35';
-
-      txt.setAttribute('x',           n._x + (isLeaf(n) ? 9 : 5));
-      txt.setAttribute('y',           n._y + 4);
+      txt.setAttribute('x',           bx + 3);
+      txt.setAttribute('y',           by + 4);
       txt.setAttribute('font-family', "'Nunito Sans',sans-serif");
-      txt.setAttribute('font-size',   isLeaf(n) ? '11' : '9');
-      txt.setAttribute('fill',        isLeaf(n) ? col : '#7a9a82');
-      txt.setAttribute('font-weight', isLeaf(n) ? '700' : '400');
-      txt.setAttribute('font-style',  'italic');
+      txt.setAttribute('font-size',   cls === 'selected' ? '11.5' : '10.5');
+      txt.setAttribute('fill',        colors.badgeText || colors.text);
+      txt.setAttribute('font-weight', cls === 'selected' ? '800' : '700');
+      txt.setAttribute('font-style',  cls !== 'ancestor' ? 'italic' : 'normal');
+      txt.textContent = label;
+      svg.appendChild(txt);
+    }
 
-      // Append † for extinct species
-      txt.textContent = isExtinct ? n.name + ' †' : n.name;
+    // ── Internal node: small label above the dot ─────────────
+    if (!leaf && n.name) {
+      const txt = document.createElementNS(NS, 'text');
+      txt.setAttribute('x',           n._x);
+      txt.setAttribute('y',           n._y - 9);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('font-family', "'Nunito Sans',sans-serif");
+      txt.setAttribute('font-size',   '9');
+      txt.setAttribute('fill',        '#9ab8aa');
+      txt.setAttribute('font-style',  'italic');
+      txt.setAttribute('font-weight', '400');
+      txt.textContent = n.name;
       svg.appendChild(txt);
     }
 
@@ -945,34 +1028,40 @@ function renderPhyloSVG(svg, NS, root, extinctSci, candidateSci) {
   }
   drawNodes(root);
 
-  // Source attribution
+  // ── Legend ────────────────────────────────────────────────────
+  const legendItems = [
+    ['#c0392b', true,  '#fde8e8', '† Extinct species'],
+    ['#1a5c35', true,  '#d1fae5', '★ Selected candidate'],
+    ['#5a9a70', false, '#ecfdf5', 'Other living relatives'],
+    ['#b0cfc0', true,  '#e8f4e8', 'Ancestor / clade'],
+  ];
+  const lStartX = 10;
+  legendItems.forEach(([stroke, filled, badge, lbl], i) => {
+    const lx = lStartX + i * 180, ly = H - 16;
+    // Mini pill
+    const pr = document.createElementNS(NS, 'rect');
+    pr.setAttribute('x', lx); pr.setAttribute('y', ly - 8);
+    pr.setAttribute('width', '14'); pr.setAttribute('height', '14');
+    pr.setAttribute('rx', '7');
+    pr.setAttribute('fill', badge);
+    pr.setAttribute('stroke', stroke); pr.setAttribute('stroke-width', '1.2');
+    svg.appendChild(pr);
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', lx + 18); t.setAttribute('y', ly + 3);
+    t.setAttribute('font-family', "'Nunito Sans',sans-serif");
+    t.setAttribute('font-size', '9.5'); t.setAttribute('fill', '#7a9a82');
+    t.textContent = lbl;
+    svg.appendChild(t);
+  });
+
+  // ── Source ────────────────────────────────────────────────────
   const src = document.createElementNS(NS, 'text');
   src.setAttribute('x', W - 4); src.setAttribute('y', H - 4);
   src.setAttribute('text-anchor', 'end');
   src.setAttribute('font-family', "'Nunito Sans',sans-serif");
-  src.setAttribute('font-size',   '9'); src.setAttribute('fill', '#b0cfc0');
+  src.setAttribute('font-size', '8.5'); src.setAttribute('fill', '#c0d8c8');
   src.textContent = 'Source: Open Tree of Life v3 · opentreeoflife.org';
   svg.appendChild(src);
-
-  // Legend
-  const legendItems = [
-    ['#c0392b', '† Extinct'],
-    ['#1a6b35', 'Living relative / candidate'],
-    ['#b0cfc0', 'Ancestor / internal node'],
-  ];
-  legendItems.forEach(([col, lbl], i) => {
-    const lx = 10 + i * 200, ly = H - 12;
-    const d  = document.createElementNS(NS, 'circle');
-    d.setAttribute('cx', lx); d.setAttribute('cy', ly);
-    d.setAttribute('r', 5); d.setAttribute('fill', col);
-    svg.appendChild(d);
-    const t = document.createElementNS(NS, 'text');
-    t.setAttribute('x', lx + 9); t.setAttribute('y', ly + 4);
-    t.setAttribute('font-family', "'Nunito Sans',sans-serif");
-    t.setAttribute('font-size',   '10'); t.setAttribute('fill', '#7a9a82');
-    t.textContent = lbl;
-    svg.appendChild(t);
-  });
 }
 
 // ── Offline fallback ──────────────────────────────────────────────
@@ -981,13 +1070,13 @@ function showPhyloFallback(svg, NS, extinctSci, candidateSci, reason) {
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.setAttribute('width',   '100%');
   svg.setAttribute('height',  H);
-  svg.innerHTML  = '';
+  svg.innerHTML = '';
 
   const badge = document.createElementNS(NS, 'text');
   badge.setAttribute('x', W / 2); badge.setAttribute('y', 28);
   badge.setAttribute('text-anchor', 'middle');
   badge.setAttribute('font-family', "'Nunito Sans',sans-serif");
-  badge.setAttribute('font-size',   '13'); badge.setAttribute('fill', '#c47c1a');
+  badge.setAttribute('font-size', '13'); badge.setAttribute('fill', '#c47c1a');
   badge.textContent = '⚠ Could not load phylogenetic tree (network unavailable)';
   svg.appendChild(badge);
 
@@ -995,7 +1084,7 @@ function showPhyloFallback(svg, NS, extinctSci, candidateSci, reason) {
   sub.setAttribute('x', W / 2); sub.setAttribute('y', 48);
   sub.setAttribute('text-anchor', 'middle');
   sub.setAttribute('font-family', "'Nunito Sans',sans-serif");
-  sub.setAttribute('font-size',   '10'); sub.setAttribute('fill', '#b0cfc0');
+  sub.setAttribute('font-size', '10'); sub.setAttribute('fill', '#b0cfc0');
   sub.textContent = `Taxa queried: "${extinctSci}" · "${candidateSci}"  —  ${reason}`;
   svg.appendChild(sub);
 }
@@ -1233,6 +1322,17 @@ function openDistPopup() {
 function closeDistPopup(e) {
   if (!e || e.target === document.getElementById('dist-popup-overlay') || e.currentTarget.classList.contains('dist-popup-close')) {
     document.getElementById('dist-popup-overlay').classList.remove('open');
+  }
+}
+
+// ── Phylogenetic tree info popup ──────────────────────────────────
+function openPhyloPopup() {
+  document.getElementById('phylo-popup-overlay').classList.add('open');
+}
+
+function closePhyloPopup(e) {
+  if (!e || e.target === document.getElementById('phylo-popup-overlay') || e.currentTarget.classList.contains('dist-popup-close')) {
+    document.getElementById('phylo-popup-overlay').classList.remove('open');
   }
 }
 

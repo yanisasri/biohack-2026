@@ -150,9 +150,41 @@
 
       <!-- Phylogenetic tree -->
       <div class="phylo-card" style="margin-top:16px;">
-        <div class="ac-title">Phylogenetic Tree</div>
-        <svg id="phylo-svg" overflow="visible"></svg>
+        <div class="phylo-card-header">
+          <div class="ac-title" style="margin-bottom:0;">Phylogenetic Tree</div>
+          <button class="dist-info-btn" onclick="openPhyloPopup()" title="About this tree">?</button>
+        </div>
+        <div class="phylo-scroll">
+          <svg id="phylo-svg" overflow="visible"></svg>
+        </div>
       </div>
+
+  <!-- ── Phylo info popup ──────────────────────────────────────── -->
+  <div class="dist-popup-overlay" id="phylo-popup-overlay" onclick="closePhyloPopup(event)">
+    <div class="dist-popup">
+      <button class="dist-popup-close" onclick="closePhyloPopup()">&times;</button>
+      <div class="dist-popup-title">About the Phylogenetic Tree</div>
+
+      <div class="dist-popup-section">
+        <div class="dist-popup-label">
+          Why some ancestor nodes show an ID like 
+          <code style="font-family:monospace;font-size:11px;background:#f0f7f2;padding:1px 5px;border-radius:3px;">mrcaott…ott…</code>
+        </div>
+
+        <div class="dist-popup-text">
+          Because the tree combines results from many different studies, not every branching point has an official scientific name. When that happens, the system assigns an internal label instead. 
+          
+          <br><br>
+          
+          <strong>MRCA</strong> stands for <em>Most Recent Common Ancestor</em>, followed by identification numbers from the Open Tree Taxonomy. In simple terms, it means <em>“the unnamed ancestor shared by these species.”</em>
+          
+          <br><br>
+          
+          Groups that are widely recognized in biology—such as <em>Ursidae</em> (the bear family) or <em>Anseriformes</em> (ducks, geese, and swans)—appear with their proper scientific names because those classifications are consistently used across studies.
+        </div>
+      </div>
+    </div>
+  </div>
 
     </div>
   </div>
