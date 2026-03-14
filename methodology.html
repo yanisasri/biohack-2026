@@ -1,0 +1,673 @@
+<!-- BIOHACK 2026 -->
+<!-- Team name: rex-the-devs -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How We Calculate Everything · De-Extinction Explorer</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ── Methodology page overrides ─────────────────────────────── */
+    .meth-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 0 80px;
+    }
+
+    /* Back link */
+    .meth-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text-faint);
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 36px;
+      transition: color 0.15s;
+    }
+    .meth-back:hover { color: var(--text); }
+    .meth-back::before { content: '←'; font-size: 15px; }
+
+    /* Hero banner */
+    .meth-hero {
+      background: linear-gradient(135deg, #1a5c35 0%, #0f3a22 100%);
+      border-radius: var(--radius);
+      padding: 44px 52px;
+      color: #fff;
+      margin-bottom: 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .meth-hero::before {
+      content: '';
+      position: absolute;
+      bottom: -60px; right: -60px;
+      width: 280px; height: 280px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      pointer-events: none;
+    }
+    .meth-hero::after {
+      content: '';
+      position: absolute;
+      top: -30px; right: 120px;
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      pointer-events: none;
+    }
+    .meth-hero-tag {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.55;
+      margin-bottom: 10px;
+    }
+    .meth-hero-title {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: clamp(28px, 4vw, 40px);
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      margin-bottom: 14px;
+      position: relative;
+      z-index: 1;
+    }
+    .meth-hero-sub {
+      font-size: 15px;
+      opacity: 0.78;
+      line-height: 1.7;
+      max-width: 580px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Section headings */
+    .meth-section {
+      margin-bottom: 28px;
+    }
+    .meth-section-title {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 20px;
+      color: var(--text);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .meth-section-title::after {
+      content: '';
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(90deg, var(--border), transparent);
+      border-radius: 2px;
+    }
+    .meth-section-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #1a5c35;
+      color: #fff;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    /* Cards */
+    .meth-card {
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      padding: 24px 28px;
+      box-shadow: var(--shadow-sm);
+      border: 1.5px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .meth-card-title {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .meth-card-title .meth-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .meth-badge.genomic  { background: #dcfce7; color: #166534; }
+    .meth-badge.eco      { background: #fef9c3; color: #854d0e; }
+    .meth-badge.decision { background: #fee2e2; color: #991b1b; }
+    .meth-badge.source   { background: #e0e7ff; color: #3730a3; }
+
+    .meth-card p {
+      font-size: 13.5px;
+      color: var(--text-mid);
+      line-height: 1.75;
+      margin-bottom: 10px;
+    }
+    .meth-card p:last-child { margin-bottom: 0; }
+
+    /* Factor weight table */
+    .factor-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .factor-table th {
+      text-align: left;
+      padding: 7px 12px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      border-bottom: 2px solid var(--border);
+    }
+    .factor-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-mid);
+      vertical-align: top;
+    }
+    .factor-table tr:last-child td { border-bottom: none; }
+    .factor-table tr:hover td { background: #f8fbf8; }
+    .factor-table .ft-name { font-weight: 600; color: var(--text); }
+    .factor-table .ft-weight {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      color: #1a6b35;
+    }
+    .ft-bar-wrap {
+      width: 80px;
+      height: 6px;
+      background: #e8f0e8;
+      border-radius: 3px;
+      overflow: hidden;
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+    .ft-bar { height: 100%; border-radius: 3px; background: #1a6b35; }
+
+    /* Decision tree flow */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .flow-step {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      position: relative;
+    }
+    .flow-step::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 32px;
+      bottom: -4px;
+      width: 2px;
+      background: var(--border);
+    }
+    .flow-step:last-child::before { display: none; }
+    .flow-dot {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 13px;
+      color: #fff;
+      flex-shrink: 0;
+      margin-top: 2px;
+      z-index: 1;
+    }
+    .flow-body {
+      flex: 1;
+      padding-bottom: 20px;
+    }
+    .flow-title {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .flow-desc {
+      font-size: 13px;
+      color: var(--text-mid);
+      line-height: 1.65;
+    }
+    .flow-outcome {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .fo-green  { background: #dcfce7; color: #166534; }
+    .fo-amber  { background: #fef9c3; color: #854d0e; }
+    .fo-red    { background: #fee2e2; color: #991b1b; }
+    .fo-brown  { background: #fef3c7; color: #78350f; }
+
+    /* Verdict outcome grid */
+    .verdict-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .verdict-item {
+      border-radius: var(--radius-sm);
+      padding: 16px 18px;
+      color: #fff;
+    }
+    .verdict-item-name {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+      margin-bottom: 6px;
+    }
+    .verdict-item-desc {
+      font-size: 12px;
+      opacity: 0.85;
+      line-height: 1.55;
+    }
+
+    /* Score label key */
+    .score-labels {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .score-label-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-mid);
+    }
+    .sl-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Source chips */
+    .source-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .source-chip {
+      background: #f0f7f2;
+      border: 1.5px solid #d0e8d8;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-mid);
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .source-chip:hover { background: #d0e8d8; color: var(--text); }
+
+    /* Formula box */
+    .formula-box {
+      background: #f0f7f2;
+      border: 1.5px solid #c8e6d0;
+      border-radius: var(--radius-sm);
+      padding: 14px 20px;
+      font-family: 'Nunito', monospace;
+      font-size: 13px;
+      color: var(--text-mid);
+      margin: 10px 0;
+      line-height: 1.8;
+    }
+    .formula-box strong { color: #1a5c35; }
+
+    /* Inline note */
+    .meth-note {
+      background: #fffbeb;
+      border-left: 3px solid #c47c1a;
+      padding: 10px 16px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 12.5px;
+      color: #78350f;
+      line-height: 1.6;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header>
+    <div class="logo">
+      De-Extinction Explorer
+      <span class="logo-badge">BioHack 2026</span>
+    </div>
+  </header>
+
+  <div class="meth-wrap">
+
+    <a href="index.html" class="meth-back">Back to Explorer</a>
+
+    <!-- Hero banner -->
+    <div class="meth-hero">
+      <div class="meth-hero-tag">Methodology</div>
+      <div class="meth-hero-title">How We Calculate Everything</div>
+      <div class="meth-hero-sub">
+        A complete walkthrough of the scoring system, decision tree, data sources, and assumptions
+        behind every number in the De-Extinction Explorer. Every score is computed automatically
+        from raw species data, i.e. no values are hardcoded.
+      </div>
+    </div>
+
+    <!-- ── 1. Genomic Similarity ────────────────────────────────── -->
+    <div class="meth-section">
+      <div class="meth-section-title">
+        <span class="meth-section-num">1</span>
+        Genomic Similarity
+      </div>
+
+      <div class="meth-card">
+        <div class="meth-card-title">
+          Whole-genome DNA similarity
+          <span class="meth-badge source">Source data</span>
+        </div>
+        <p>
+          The <strong>DNA similarity %</strong> is the primary genomic input. It represents
+          the percentage of the genome that is identical between the extinct species and the
+          candidate living relative, determined via whole-genome alignment using
+          NCBI BLAST multiple sequence alignment.
+        </p>
+        <p>
+          A higher similarity means fewer total gene edits are required to reconstruct the
+          extinct phenotype from the candidate's genome. Because genomes are large and
+          edit efficiency is imperfect, even a 0.5% difference can translate to thousands
+          of distinct loci requiring modification.
+        </p>
+        <div class="meth-note">
+          ⚠ Similarity alone is not sufficient to determine viability. A 99% similar
+          candidate in a completely incompatible habitat will fail. All five ecological
+          factors are equally important. See Section 2.
+        </div>
+      </div>
+
+      <div class="meth-card">
+        <div class="meth-card-title">
+          Divergence time
+          <span class="meth-badge source">Source data</span>
+        </div>
+        <p>
+          Divergence time (in millions of years, Mya) is derived from published phylogenetic
+          studies and calibrated molecular clocks. It measures how long ago the extinct
+          and candidate lineages last shared a common ancestor.
+        </p>
+        <p>
+          More recently diverged species share more identical regulatory regions, gene
+          expression patterns, and developmental pathways, making genome reconstruction
+          substantially easier. The divergence score uses a <strong>logarithmic decay</strong>
+          so that differences at short timescales (0.1 vs 1 Mya) matter more than differences
+          at long timescales (25 vs 30 Mya).
+        </p>
+        <div class="meth-note">
+          The divergence time used in this website is gathered from a dataset and not calculated ourselves.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 2. Ecological Score ───────────────────────────────────── -->
+    <div class="meth-section">
+      <div class="meth-section-title">
+        <span class="meth-section-num">2</span>
+        Ecological Composite Score
+      </div>
+
+      <div class="meth-card">
+        <div class="meth-card-title">
+          How the composite score is calculated
+          <span class="meth-badge eco">Ecological</span>
+        </div>
+        <p>
+          The <strong>Ecological Composite Score</strong> (0–100) is a weighted average
+          of seven independent factors. Each factor is scored independently based on raw
+          species data from the candidate and the extinct species. Weights reflect the
+          relative importance of each factor to the survival of a reintroduced population.
+        </p>
+        <div class="formula-box">
+          <strong>Eco score</strong> = Σ (factor score × factor weight) across all 7 factors
+        </div>
+
+        <table class="factor-table" style="margin-top:14px;">
+          <thead>
+            <tr>
+              <th>Factor</th>
+              <th>Weight</th>
+              <th style="min-width:90px;"></th>
+              <th>How it is scored</th>
+              <th>Why this weight</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="ft-name">Climate match</td>
+              <td class="ft-weight">20%</td>
+              <td><span class="ft-bar-wrap"><span class="ft-bar" style="width:100%"></span></span></td>
+              <td>Degree of overlap between extinct and candidate temperature ranges (°C). Full overlap = 100, no overlap = 0.</td>
+              <td>Climate mismatch is the most immediate physiological barrier. A candidate that cannot thermoregulate in the target habitat cannot survive.</td>
+            </tr>
+            <tr>
+              <td class="ft-name">Habitat intactness</td>
+              <td class="ft-weight">20%</td>
+              <td><span class="ft-bar-wrap"><span class="ft-bar" style="width:100%"></span></span></td>
+              <td>% of the extinct species' historic habitat that remains ecologically intact today (0–100). Sourced from IUCN habitat assessments and GBIF SDM.</td>
+              <td>Even a perfect biome match fails if the habitat is severely degraded. Fragmentation, deforestation, and permafrost loss can make restoration impractical.</td>
+            </tr>
+            <tr>
+              <td class="ft-name">Biome match</td>
+              <td class="ft-weight">15%</td>
+              <td><span class="ft-bar-wrap"><span class="ft-bar" style="width:75%"></span></span></td>
+              <td>Exact biome = 100. Adjacent/related biome = 55. Unrelated biome = 15.</td>
+              <td>Biome determines the full suite of vegetation, prey, and microclimate conditions. A candidate from a mismatched biome faces cascading adaptation challenges.</td>
+            </tr>
+            <tr>
+              <td class="ft-name">Food availability</td>
+              <td class="ft-weight">15%</td>
+              <td><span class="ft-bar-wrap"><span class="ft-bar" style="width:75%"></span></span></td>
+              <td>% availability of the extinct species' historic prey or food sources in the target habitat today (0–100).</td>
+              <td>Population viability depends directly on food web support. Without adequate prey or forage, even a well-adapted species will decline rapidly.</td>
+            </tr>
+            <tr>
+              <td class="ft-name">Human pressure</td>
+              <td class="ft-weight">10%</td>
+              <td><span class="ft-bar-wrap"><span class="ft-bar" style="width:50%"></span></span></td>
+              <td>Land-use pressure in the target range (0–100 scale, higher = worse). Score is inverted: low pressure = high score. Sourced from GBIF occurrence data.</td>
+              <td>Long-term survival requires stable habitat free from intensive agriculture, hunting, or urban expansion. Human conflict is often the primary cause of reintroduction failure.</td>
+            </tr>
+            <tr>
+              <td class="ft-name">Diet compatibility</td>
+              <td class="ft-weight">10%</td>
+              <td><span class="ft-bar-wrap"><span class="ft-bar" style="width:50%"></span></span></td>
+              <td>Exact diet type match = 100. Broadly compatible diet = 60. Incompatible = 10.</td>
+              <td>A candidate with an incompatible diet cannot fill the extinct species' ecological niche, reducing the ecological value of de-extinction.</td>
+            </tr>
+            <tr>
+              <td class="ft-name">Predator risk</td>
+              <td class="ft-weight">10%</td>
+              <td><span class="ft-bar-wrap"><span class="ft-bar" style="width:50%"></span></span></td>
+              <td>No invasive predators = 85. Active invasive predators present = 25.</td>
+              <td>Invasive predators (e.g. rats, feral cats, mongoose) have driven multiple island reintroductions to failure. Their presence is a hard constraint on wild release.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="meth-card">
+        <div class="meth-card-title">Score labels</div>
+        <p>Numerical scores are converted to text labels for the radar chart and summary table:</p>
+        <div class="score-labels">
+          <div class="score-label-item"><span class="sl-dot" style="background:#1a6b35"></span>75–100 → <strong>Good</strong></div>
+          <div class="score-label-item"><span class="sl-dot" style="background:#c47c1a"></span>55–74 → <strong>Moderate</strong></div>
+          <div class="score-label-item"><span class="sl-dot" style="background:#c0392b"></span>35–54 → <strong>Low</strong></div>
+          <div class="score-label-item"><span class="sl-dot" style="background:#7f1d1d"></span>0–34 → <strong>Very Low</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 3. Decision Tree ──────────────────────────────────────── -->
+    <div class="meth-section">
+      <div class="meth-section-title">
+        <span class="meth-section-num">3</span>
+        De-Extinction Verdict Decision Tree
+      </div>
+
+      <div class="meth-card">
+        <div class="meth-card-title">
+          How the verdict is reached
+          <span class="meth-badge decision">Decision logic</span>
+        </div>
+        <p>
+          The verdict is determined by a sequential decision tree that applies gates in order.
+          Each gate is evaluated using the genomic and ecological scores computed above.
+          The first gate that resolves determines the outcome.
+        </p>
+
+        <div class="flow" style="margin-top:20px;">
+
+          <div class="flow-step">
+            <div class="flow-dot" style="background:#b91c1c;">1</div>
+            <div class="flow-body">
+              <div class="flow-title">Genomic gate</div>
+              <div class="flow-desc">
+                If <strong>DNA similarity &lt; 60%</strong>, the total number of gene edits
+                required exceeds current technological capability. No further evaluation is
+                performed.
+              </div>
+              <span class="flow-outcome fo-red">→ NOT POSSIBLE</span>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-dot" style="background:#92400e;">2</div>
+            <div class="flow-body">
+              <div class="flow-title">Invasive predator gate</div>
+              <div class="flow-desc">
+                If <strong>invasive predators are present</strong> in the target habitat,
+                wild release is blocked regardless of other scores, since predator-naïve
+                de-extincted populations have historically collapsed within years.
+                If ecological score ≥ 45, captive revival remains viable.
+                Otherwise de-extinction should not be attempted.
+              </div>
+              <span class="flow-outcome fo-amber">→ CAPTIVITY ONLY (if eco ≥ 45)</span>
+              &nbsp;
+              <span class="flow-outcome fo-brown">→ DO NOT ATTEMPT (if eco &lt; 45)</span>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-dot" style="background:#166534;">3</div>
+            <div class="flow-body">
+              <div class="flow-title">Wild release gate</div>
+              <div class="flow-desc">
+                If <strong>ecological composite ≥ 65</strong>, the habitat is sufficiently
+                intact for wild release. The climate and biome scores then determine whether
+                the candidate needs genetic modification before release, or can be relocated
+                directly.
+              </div>
+              <span class="flow-outcome fo-green">→ WILD — RELOCATE (climate ≥ 60 AND biome ≥ 60)</span>
+              <br style="margin-bottom:4px;">
+              <span class="flow-outcome fo-green" style="background:#dcfce7;color:#14532d;margin-top:4px;">→ WILD — GMO NEEDED (climate or biome &lt; 60)</span>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-dot" style="background:#c47c1a;">4</div>
+            <div class="flow-body">
+              <div class="flow-title">Captive revival gate</div>
+              <div class="flow-desc">
+                If <strong>ecological composite ≥ 40</strong> but below the wild release
+                threshold, conditions support controlled captive revival pending habitat
+                restoration or invasive species management.
+              </div>
+              <span class="flow-outcome fo-amber">→ CAPTIVITY ONLY</span>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-dot" style="background:#78350f;">5</div>
+            <div class="flow-body">
+              <div class="flow-title">No-attempt gate</div>
+              <div class="flow-desc">
+                If <strong>ecological composite &lt; 40</strong>, ecological conditions present
+                unacceptable risks even for captive revival. De-extinction is theoretically
+                possible but should not be pursued with the selected candidate.
+              </div>
+              <span class="flow-outcome fo-brown">→ DO NOT ATTEMPT</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Verdict outcomes reference -->
+      <div class="meth-card">
+        <div class="meth-card-title">The five possible outcomes</div>
+        <div class="verdict-grid">
+          <div class="verdict-item" style="background:#b91c1c;">
+            <div class="verdict-item-name">NOT POSSIBLE</div>
+            <div class="verdict-item-desc">Genomic divergence too high. Editing burden exceeds current technology.</div>
+          </div>
+          <div class="verdict-item" style="background:#166534;">
+            <div class="verdict-item-name">WILD — RELOCATE</div>
+            <div class="verdict-item-desc">Direct relocation to historic range. No significant genetic modification required.</div>
+          </div>
+          <div class="verdict-item" style="background:#14532d;">
+            <div class="verdict-item-name">WILD — GMO NEEDED</div>
+            <div class="verdict-item-desc">Wild release viable but targeted gene edits required (e.g. cold-adaptation loci).</div>
+          </div>
+          <div class="verdict-item" style="background:#92400e;">
+            <div class="verdict-item-name">CAPTIVITY ONLY</div>
+            <div class="verdict-item-desc">Revival feasible in controlled environment. Wild release requires habitat improvement.</div>
+          </div>
+          <div class="verdict-item" style="background:#78350f; grid-column: 1 / -1; max-width: 49%;">
+            <div class="verdict-item-name">DO NOT ATTEMPT</div>
+            <div class="verdict-item-desc">Technically possible but ecological risks make any reintroduction inadvisable.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /meth-wrap -->
+</div><!-- /app -->
+</body>
+</html>
