@@ -16,10 +16,8 @@
       <span class="logo-badge">BioHack 2026</span>
     </div>
     <nav>
-      <a href="#">Info</a>
-      <a href="#">Adding Your Own Data</a>
-      <a href="#">?</a>
-      <a href="#">?</a>
+      <a href="#">How we calculate everything!</a>
+      <!-- <a href="#">Adding Your Own Data</a> -->
     </nav>
   </header>
 
@@ -46,32 +44,50 @@
 
     <div class="analysis-panel" id="analysis-panel">
 
+      <!-- Row 1: DNA similarity + Radar chart -->
       <div class="analysis-grid">
 
-        <!-- Similarity score -->
         <div class="analysis-card">
-          <div class="ac-title">Genomic Similarity</div>
+          <div class="ac-title">DNA Similarity</div>
           <div class="sim-big" id="sim-big">—</div>
           <div class="sim-bar-wrap">
             <div class="sim-bar" id="sim-bar" style="width:0%"></div>
           </div>
-          <div style="font-size:13px;color:var(--text-faint);font-weight:600;" id="sim-label"></div>
+          <div style="font-size:13px;color:var(--text-faint);font-weight:600;margin-top:6px;" id="sim-label"></div>
         </div>
 
-        <!-- Breakdown bars -->
         <div class="analysis-card">
-          <div class="ac-title">Regional Breakdown</div>
-          <div id="breakdown-rows"></div>
+          <div class="ac-title">Ecological Factor Scores</div>
+          <div class="radar-wrap">
+            <svg id="radar-svg" viewBox="0 0 260 220" width="260" height="220" overflow="visible"></svg>
+          </div>
         </div>
 
       </div>
 
-      <!-- Ecological factors -->
-      <div class="section-title" style="font-size:16px;">Ecological Assessment</div>
-      <div class="eco-row" id="eco-row"></div>
+      <!-- Row 2: Temperature range chart + Eco factor cards -->
+      <div class="analysis-grid two-thirds">
+
+        <div class="analysis-card">
+          <div class="ac-title">Temperature Range Comparison</div>
+          <svg id="temp-svg" viewBox="0 0 480 120" width="100%" height="120" overflow="visible"></svg>
+        </div>
+
+        <div class="analysis-card">
+          <div class="ac-title">Ecological Factors</div>
+          <div class="eco-row" id="eco-row"></div>
+        </div>
+
+      </div>
+
+      <!-- Row 3: Summary comparison table -->
+      <div class="analysis-card" style="margin-top:16px;">
+        <div class="ac-title">Species Comparison Summary</div>
+        <div id="summary-table"></div>
+      </div>
 
       <!-- Phylogenetic tree -->
-      <div class="phylo-card">
+      <div class="phylo-card" style="margin-top:16px;">
         <div class="ac-title">Phylogenetic Tree</div>
         <svg id="phylo-svg" overflow="visible"></svg>
       </div>
@@ -86,6 +102,7 @@
 </div><!-- /app -->
 
 <script src="data.js"></script>
+<script src="scoring.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
