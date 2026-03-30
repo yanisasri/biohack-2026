@@ -43,3 +43,12 @@ Phylogenetic trees are generated live via the [Open Tree of Life v3 API](https:/
 ## Deployment Link
 https://rex-the-dev-biohack2026.netlify.app/
 
+---
+
+## THE TEAM!
+
+**Mae Lakmun**: [@maerl404](https://github.com/maerl404)
+
+**Katherine Gamboa**: [@kdafrose](https://github.com/kdafrose)
+
+**Yanisa Srisa-ard**: [@yanisasri](https://github.com/yanisasri)
